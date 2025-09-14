@@ -1,0 +1,105 @@
+networks:
+  medisupply-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+
+services:
+  # Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: medisupply-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-medisupply}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - medisupply-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-medisupply}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Inventory Service (starts first)
+  inventory-service:
+    build:
+      context: ./inventory-service
+      dockerfile: Dockerfile
+    container_name: medisupply-inventory-service
+    restart: unless-stopped
+    env_file:
+      - ./inventory-service/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-medisupply}
+    ports:
+      - "8002:8002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - medisupply-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      - ./inventory-service:/app
+    command: >
+      sh -c "
+        echo 'Waiting for database...' &&
+        sleep 10 &&
+        echo 'Starting inventory service...' &&
+        uv run uvicorn main:app --host 0.0.0.0 --port 8002 --reload
+      "
+
+  # Orders Service (depends on inventory)
+  orders-service:
+    build:
+      context: ./orders-service
+      dockerfile: Dockerfile
+    container_name: medisupply-orders-service
+    restart: unless-stopped
+    env_file:
+      - ./orders-service/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-medisupply}
+      INVENTORY_SERVICE_URL: http://inventory-service:8002
+      # SQS calls are mocked - no actual AWS needed
+      AWS_ENDPOINT_URL: mock://localhost
+      SQS_QUEUE_URL: mock://orders-queue
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      inventory-service:
+        condition: service_healthy
+    networks:
+      - medisupply-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      - ./orders-service:/app
+    command: >
+      sh -c "
+        echo 'Waiting for database and inventory service...' &&
+        sleep 15 &&
+        echo 'Running database migrations...' &&
+        uv run alembic upgrade head &&
+        echo 'Starting orders service...' &&
+        uv run uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+      "

@@ -1,0 +1,146 @@
+groups:
+  - name: sre-alerts
+    rules:
+      # High CPU Usage Alert
+      - alert: HighCPUUsage
+        expr: avg(rate(container_cpu_usage_seconds_total{container!=""}[5m])) by (container_name, service) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "High CPU usage detected"
+          description: "Container {{ $labels.container_name }} in service {{ $labels.service }} has high CPU usage: {{ $value }}%"
+
+      # High Memory Usage Alert
+      - alert: HighMemoryUsage
+        expr: (container_memory_usage_bytes{container!=""} / container_spec_memory_limit_bytes{container!=""}) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "High memory usage detected"
+          description: "Container {{ $labels.container_name }} in service {{ $labels.service }} has high memory usage: {{ $value }}%"
+
+      # High Response Latency Alert
+      - alert: HighResponseLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+        for: 2m
+        labels:
+          severity: warning
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "High response latency detected"
+          description: "Service {{ $labels.service }} has high 95th percentile latency: {{ $value }}s"
+
+      # High Error Rate Alert
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) * 100 > 5
+        for: 2m
+        labels:
+          severity: critical
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "High error rate detected"
+          description: "Service {{ $labels.service }} has high error rate: {{ $value }}%"
+
+      # Low Service Availability Alert
+      - alert: LowServiceAvailability
+        expr: (rate(http_requests_total{status!~"5.."}[5m]) / rate(http_requests_total[5m])) * 100 < 99
+        for: 3m
+        labels:
+          severity: critical
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "Low service availability"
+          description: "Service {{ $labels.service }} availability is below SLA: {{ $value }}%"
+
+      # ECS Service Down Alert
+      - alert: ECSServiceDown
+        expr: up{job=~"ecs-.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "ECS service is down"
+          description: "ECS service {{ $labels.service }} is not responding"
+
+      # Container Restart Alert
+      - alert: ContainerRestarting
+        expr: increase(kube_pod_container_status_restarts_total[15m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "Container restarting"
+          description: "Container {{ $labels.container }} in service {{ $labels.service }} has restarted"
+
+  - name: load-test-alerts
+    rules:
+      # Load Test High Latency
+      - alert: LoadTestHighLatency
+        expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{job="load-test-metrics"}[1m])) > 2
+        for: 30s
+        labels:
+          severity: warning
+          type: load_test
+        annotations:
+          summary: "Load test showing high latency"
+          description: "99th percentile latency during load test: {{ $value }}s"
+
+      # Load Test High Resource Usage
+      - alert: LoadTestHighResourceUsage
+        expr: avg(rate(container_cpu_usage_seconds_total{container!=""}[1m])) by (service) * 100 > 90
+        for: 1m
+        labels:
+          severity: warning
+          type: load_test
+        annotations:
+          summary: "High resource usage during load test"
+          description: "Service {{ $labels.service }} CPU usage during load test: {{ $value }}%"
+
+      # Active Instances During Load Test
+      - alert: LoadTestInstanceCount
+        expr: count(up{job=~"ecs-.*"} == 1) by (job)
+        for: 0m
+        labels:
+          severity: info
+          type: load_test
+        annotations:
+          summary: "Active instances during load test"
+          description: "{{ $labels.job }} has {{ $value }} active instances"
+
+  - name: infrastructure-alerts
+    rules:
+      # ALB Target Health
+      - alert: ALBUnhealthyTargets
+        expr: aws_alb_target_group_healthy_hosts{target_group=~".*"} < 1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "ALB has unhealthy targets"
+          description: "Target group {{ $labels.target_group }} has {{ $value }} healthy targets"
+
+      # ECS Service Desired vs Running Tasks
+      - alert: ECSServiceTaskCountMismatch
+        expr: aws_ecs_service_desired_count - aws_ecs_service_running_count > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "ECS service task count mismatch"
+          description: "Service {{ $labels.service_name }} desired: {{ $labels.desired }}, running: {{ $labels.running }}"
+
+      # Disk Space Alert
+      - alert: HighDiskUsage
+        expr: (node_filesystem_size_bytes{fstype!="tmpfs"} - node_filesystem_free_bytes{fstype!="tmpfs"}) / node_filesystem_size_bytes{fstype!="tmpfs"} * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High disk usage"
+          description: "Disk usage on {{ $labels.instance }} is {{ $value }}%"

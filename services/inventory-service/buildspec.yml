@@ -1,0 +1,47 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - REPOSITORY_URI=$ECR_REPOSITORY_URI
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - IMAGE_TAG=${IMAGE_TAG:-latest}
+      - BUILD_NUMBER=${CODEBUILD_BUILD_NUMBER:-1}
+      - VERSION_TAG=${VERSION_TAG:-v1.0.$BUILD_NUMBER}
+      - echo Build started on `date`
+      - echo Building the Docker image for inventory-service...
+      - echo "Repository URI:" $REPOSITORY_URI
+      - echo "Image tags:" $IMAGE_TAG, $VERSION_TAG, $COMMIT_HASH, build-$BUILD_NUMBER
+
+  build:
+    commands:
+      - echo Building Docker image...
+      - cd services/inventory-service
+      - docker build -t $REPOSITORY_URI:latest .
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$VERSION_TAG
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$COMMIT_HASH
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:build-$BUILD_NUMBER
+      - echo Docker image built successfully
+
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker images to ECR...
+      - docker push $REPOSITORY_URI:latest
+      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      - docker push $REPOSITORY_URI:$VERSION_TAG
+      - docker push $REPOSITORY_URI:$COMMIT_HASH
+      - docker push $REPOSITORY_URI:build-$BUILD_NUMBER
+      - echo Docker images pushed successfully
+      - echo "✅ Image URI with latest tag:" $REPOSITORY_URI:latest
+      - echo "✅ Image URI with version tag:" $REPOSITORY_URI:$VERSION_TAG
+      - echo "✅ Image URI with commit hash:" $REPOSITORY_URI:$COMMIT_HASH
+      - echo "✅ Image URI with build number:" $REPOSITORY_URI:build-$BUILD_NUMBER
+
+artifacts:
+  files:
+    - services/inventory-service/**/*
+  name: inventory-service-build-artifacts
