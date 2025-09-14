@@ -173,8 +173,8 @@ EOF
   # Monitoring
   enable_build_failure_alarm = var.codebuild_enable_alarms
 
-  # Webhook Configuration (disabled due to CodeConnections requirements)
-  enable_webhook = false
+  # Webhook Configuration
+  enable_webhook = true
 
   common_tags = merge(var.common_tags, {
     Service = "orders"
@@ -269,8 +269,8 @@ EOF
   # Monitoring
   enable_build_failure_alarm = var.codebuild_enable_alarms
 
-  # Webhook Configuration (disabled due to CodeConnections requirements)
-  enable_webhook = false
+  # Webhook Configuration
+  enable_webhook = true
 
   common_tags = merge(var.common_tags, {
     Service = "inventory"

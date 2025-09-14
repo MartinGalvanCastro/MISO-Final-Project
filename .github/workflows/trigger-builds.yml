@@ -1,0 +1,59 @@
+name: Trigger CodeBuild on Service Changes
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'services/orders-service/**'
+      - 'services/inventory-service/**'
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      orders-changed: ${{ steps.changes.outputs.orders }}
+      inventory-changed: ${{ steps.changes.outputs.inventory }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            orders:
+              - 'services/orders-service/**'
+            inventory:
+              - 'services/inventory-service/**'
+
+  trigger-orders-build:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.orders-changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Trigger Orders Service Build
+        run: |
+          echo "🚀 Triggering build for Orders Service"
+          aws codebuild start-build --project-name medisupply-orders-service-build
+
+  trigger-inventory-build:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.inventory-changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Trigger Inventory Service Build
+        run: |
+          echo "🚀 Triggering build for Inventory Service"
+          aws codebuild start-build --project-name medisupply-inventory-service-build
