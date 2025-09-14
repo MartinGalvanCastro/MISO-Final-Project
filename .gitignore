@@ -316,6 +316,29 @@ node_modules/
 # Yarn Integrity file
 .yarn-integrity
 
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate.backup
+.terraform.tfstate.lock.info
+crash.log
+crash.*.log
+terraform.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Terraform plan files
+*.tfplan
+*.tfplan.json
+
 # dotenv environment variables file
 .env
 .env.local
@@ -363,3 +386,28 @@ pids
 
 # Yarn Integrity file
 .yarn-integrity
+
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate.backup
+.terraform.tfstate.lock.info
+crash.log
+crash.*.log
+terraform.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Terraform plan files
+*.tfplan
+*.tfplan.json
+
+CLAUDE.md
