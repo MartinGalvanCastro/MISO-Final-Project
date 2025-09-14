@@ -198,6 +198,25 @@ variable "sqs_kms_master_key_id" {
   default     = null
 }
 
+# Git/GitHub Configuration
+variable "github_owner" {
+  description = "GitHub repository owner/organization"
+  type        = string
+  default     = "MartinGalvanCastro"
+}
+
+variable "github_repo" {
+  description = "GitHub repository name"
+  type        = string
+  default     = "MISO-Final-Project"
+}
+
+variable "github_branch" {
+  description = "GitHub branch to monitor for changes"
+  type        = string
+  default     = "main"
+}
+
 # CodeBuild Configuration
 variable "codebuild_compute_type" {
   description = "Information about the compute resources the build project will use"
@@ -524,6 +543,26 @@ variable "codedeploy_log_retention_days" {
     condition = contains([
       1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 3653
     ], var.codedeploy_log_retention_days)
+    error_message = "Log retention days must be a valid CloudWatch Logs retention period."
+  }
+}
+
+# CodePipeline Configuration
+variable "codepipeline_enable_manual_approval" {
+  description = "Enable manual approval step in CodePipeline before deployment"
+  type        = bool
+  default     = false
+}
+
+variable "codepipeline_log_retention_days" {
+  description = "Number of days to retain CodePipeline logs"
+  type        = number
+  default     = 14
+
+  validation {
+    condition = contains([
+      1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 3653
+    ], var.codepipeline_log_retention_days)
     error_message = "Log retention days must be a valid CloudWatch Logs retention period."
   }
 }

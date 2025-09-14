@@ -256,6 +256,14 @@ resource "aws_ecs_service" "service" {
 
   enable_execute_command = var.enable_execute_command
 
+  # Enable CodeDeploy for blue-green deployments when specified
+  dynamic "deployment_controller" {
+    for_each = var.enable_blue_green_deployment ? [1] : []
+    content {
+      type = "CODE_DEPLOY"
+    }
+  }
+
   depends_on = [
     aws_iam_role_policy_attachment.task_execution_role_policy
   ]

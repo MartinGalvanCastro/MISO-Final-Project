@@ -16,7 +16,7 @@ resource "aws_codedeploy_app" "app" {
 
 # IAM Role for CodeDeploy
 resource "aws_iam_role" "codedeploy_role" {
-  name = "${var.application_name}-codedeploy-role"
+  name = "${var.service_name}-codedeploy-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -32,7 +32,7 @@ resource "aws_iam_role" "codedeploy_role" {
   })
 
   tags = merge(var.common_tags, {
-    Name    = "${var.application_name}-codedeploy-role"
+    Name    = "${var.service_name}-codedeploy-role"
     Service = var.service_name
   })
 }
@@ -222,7 +222,7 @@ resource "aws_cloudwatch_event_target" "codedeploy_target" {
 resource "aws_iam_role" "eventbridge_role" {
   count = var.enable_auto_deployment ? 1 : 0
 
-  name = "${var.application_name}-eventbridge-codedeploy-role"
+  name = "${var.service_name}-eventbridge-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"

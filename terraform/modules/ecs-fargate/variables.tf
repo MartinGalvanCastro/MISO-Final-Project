@@ -273,6 +273,13 @@ variable "alarm_actions" {
   default     = []
 }
 
+# Blue-Green Deployment Configuration
+variable "enable_blue_green_deployment" {
+  description = "Enable CodeDeploy blue-green deployment for this service"
+  type        = bool
+  default     = false
+}
+
 # Tags
 variable "common_tags" {
   description = "Common tags to apply to all resources"

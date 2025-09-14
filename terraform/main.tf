@@ -298,6 +298,47 @@ module "vpc" {
   common_tags = var.common_tags
 }
 
+# S3 Bucket for CodePipeline Artifacts
+resource "aws_s3_bucket" "codepipeline_artifacts" {
+  bucket = "${var.project_name}-codepipeline-artifacts-${random_id.bucket_suffix.hex}"
+
+  tags = merge(var.common_tags, {
+    Name        = "${var.project_name}-codepipeline-artifacts"
+    Description = "S3 bucket for CodePipeline artifacts"
+    Purpose     = "CI/CD"
+  })
+}
+
+resource "random_id" "bucket_suffix" {
+  byte_length = 4
+}
+
+resource "aws_s3_bucket_versioning" "codepipeline_artifacts" {
+  bucket = aws_s3_bucket.codepipeline_artifacts.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "codepipeline_artifacts" {
+  bucket = aws_s3_bucket.codepipeline_artifacts.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "codepipeline_artifacts" {
+  bucket = aws_s3_bucket.codepipeline_artifacts.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
 # RDS PostgreSQL Database (cheapest configuration)
 module "rds" {
   source = "./modules/rds"
@@ -456,6 +497,9 @@ module "orders_service_ecs" {
   # Monitoring
   enable_cloudwatch_alarms = var.ecs_enable_cloudwatch_alarms
 
+  # Blue-Green Deployment Configuration
+  enable_blue_green_deployment = var.enable_blue_green_deployment
+
   common_tags = merge(var.common_tags, {
     Service = "orders"
   })
@@ -523,6 +567,9 @@ module "inventory_service_ecs" {
 
   # Monitoring
   enable_cloudwatch_alarms = var.ecs_enable_cloudwatch_alarms
+
+  # Blue-Green Deployment Configuration
+  enable_blue_green_deployment = var.enable_blue_green_deployment
 
   common_tags = merge(var.common_tags, {
     Service = "inventory"
@@ -614,6 +661,92 @@ module "inventory_service_codedeploy" {
   depends_on = [
     module.inventory_service_ecs,
     module.alb
+  ]
+}
+
+# CodePipeline for Orders Service
+module "orders_service_codepipeline" {
+  count = var.enable_blue_green_deployment ? 1 : 0
+  source = "./modules/codepipeline"
+
+  # Pipeline Configuration
+  pipeline_name = "${var.project_name}-orders-pipeline"
+  service_name  = "orders"
+
+  # Source Configuration
+  github_owner  = var.github_owner
+  github_repo   = var.github_repo
+  github_branch = var.github_branch
+
+  # Build Configuration
+  codebuild_project_name = module.orders_service_codebuild.project_name
+
+  # Deploy Configuration
+  codedeploy_application_name  = var.enable_blue_green_deployment ? module.orders_service_codedeploy[0].application_name : ""
+  codedeploy_deployment_group  = "orders-deployment-group"
+
+  # Artifacts Configuration
+  artifacts_bucket_name = aws_s3_bucket.codepipeline_artifacts.bucket
+  artifacts_bucket_arn  = aws_s3_bucket.codepipeline_artifacts.arn
+
+  # Pipeline Configuration
+  enable_manual_approval = var.codepipeline_enable_manual_approval
+  environment           = var.environment
+
+  # Logging Configuration
+  log_retention_days = var.codepipeline_log_retention_days
+
+  common_tags = merge(var.common_tags, {
+    Service = "orders"
+    Purpose = "ci-cd"
+  })
+
+  depends_on = [
+    module.orders_service_codebuild,
+    module.orders_service_codedeploy
+  ]
+}
+
+# CodePipeline for Inventory Service
+module "inventory_service_codepipeline" {
+  count = var.enable_blue_green_deployment ? 1 : 0
+  source = "./modules/codepipeline"
+
+  # Pipeline Configuration
+  pipeline_name = "${var.project_name}-inventory-pipeline"
+  service_name  = "inventory"
+
+  # Source Configuration
+  github_owner  = var.github_owner
+  github_repo   = var.github_repo
+  github_branch = var.github_branch
+
+  # Build Configuration
+  codebuild_project_name = module.inventory_service_codebuild.project_name
+
+  # Deploy Configuration
+  codedeploy_application_name  = var.enable_blue_green_deployment ? module.inventory_service_codedeploy[0].application_name : ""
+  codedeploy_deployment_group  = "inventory-deployment-group"
+
+  # Artifacts Configuration
+  artifacts_bucket_name = aws_s3_bucket.codepipeline_artifacts.bucket
+  artifacts_bucket_arn  = aws_s3_bucket.codepipeline_artifacts.arn
+
+  # Pipeline Configuration
+  enable_manual_approval = var.codepipeline_enable_manual_approval
+  environment           = var.environment
+
+  # Logging Configuration
+  log_retention_days = var.codepipeline_log_retention_days
+
+  common_tags = merge(var.common_tags, {
+    Service = "inventory"
+    Purpose = "ci-cd"
+  })
+
+  depends_on = [
+    module.inventory_service_codebuild,
+    module.inventory_service_codedeploy
   ]
 }
 
