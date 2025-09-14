@@ -578,3 +578,10 @@ variable "enable_cost_optimized_logging" {
   type        = bool
   default     = true
 }
+
+# Database Configuration
+variable "database_password" {
+  description = "Password for the RDS PostgreSQL database"
+  type        = string
+  sensitive   = true
+}

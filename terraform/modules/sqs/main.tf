@@ -4,7 +4,6 @@ resource "aws_sqs_queue" "dead_letter_queue" {
 
   name                      = "${var.queue_name}-dlq"
   message_retention_seconds = var.dlq_message_retention_seconds
-  max_receive_count         = var.dlq_max_receive_count
 
   # Encryption
   kms_master_key_id                 = var.kms_master_key_id

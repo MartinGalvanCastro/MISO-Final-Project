@@ -33,7 +33,7 @@ resource "aws_iam_role_policy" "codebuild_policy" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
+    Statement = concat([
       {
         Effect = "Allow"
         Action = [
@@ -65,7 +65,8 @@ resource "aws_iam_role_policy" "codebuild_policy" {
           "ecr:PutImage"
         ]
         Resource = var.ecr_repository_arn
-      },
+      }
+    ], var.artifacts_bucket_arn != null ? [
       {
         Effect = "Allow"
         Action = [
@@ -73,11 +74,11 @@ resource "aws_iam_role_policy" "codebuild_policy" {
           "s3:GetObjectVersion",
           "s3:PutObject"
         ]
-        Resource = var.artifacts_bucket_arn != null ? [
+        Resource = [
           "${var.artifacts_bucket_arn}/*"
-        ] : []
+        ]
       }
-    ]
+    ] : [])
   })
 }
 
@@ -100,14 +101,8 @@ resource "aws_codebuild_project" "project" {
   service_role  = aws_iam_role.codebuild_role.arn
 
   artifacts {
-    type = var.artifacts_type
-
-    dynamic "s3" {
-      for_each = var.artifacts_type == "S3" ? [1] : []
-      content {
-        location = var.artifacts_location
-      }
-    }
+    type     = var.artifacts_type
+    location = var.artifacts_type == "S3" ? var.artifacts_location : null
   }
 
   environment {
@@ -148,21 +143,9 @@ resource "aws_codebuild_project" "project" {
   }
 
   source {
-    type = var.source_type
-
-    dynamic "git_clone_depth" {
-      for_each = var.source_type == "GITHUB" ? [var.git_clone_depth] : []
-      content {
-        git_clone_depth = git_clone_depth.value
-      }
-    }
-
-    dynamic "location" {
-      for_each = var.source_type == "GITHUB" ? [var.source_location] : []
-      content {
-        location = location.value
-      }
-    }
+    type            = var.source_type
+    location        = var.source_type == "GITHUB" ? var.source_location : null
+    git_clone_depth = var.source_type == "GITHUB" ? var.git_clone_depth : null
 
     buildspec = var.buildspec_file != null ? var.buildspec_file : templatefile("${path.module}/templates/buildspec.yml", {
       service_name = var.service_name
@@ -170,12 +153,7 @@ resource "aws_codebuild_project" "project" {
     })
   }
 
-  dynamic "source_version" {
-    for_each = var.source_version != null ? [var.source_version] : []
-    content {
-      source_version = source_version.value
-    }
-  }
+  source_version = var.source_version
 
   logs_config {
     cloudwatch_logs {

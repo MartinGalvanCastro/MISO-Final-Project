@@ -157,15 +157,10 @@ resource "aws_codedeploy_deployment_config" "linear_10_percent" {
     type = "TimeBasedLinear"
 
     time_based_linear {
-      linear_percentage = 10
-      linear_interval   = 1
+      percentage = 10
+      interval   = 1
     }
   }
-
-  tags = merge(var.common_tags, {
-    Name    = "${var.application_name}-linear-deployment-config"
-    Service = var.service_name
-  })
 }
 
 # EventBridge Rule for ECR Image Push

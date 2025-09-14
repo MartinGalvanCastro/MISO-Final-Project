@@ -30,9 +30,19 @@ variable "alb_listener_arn" {
   type        = string
 }
 
+variable "alb_dns_name" {
+  description = "DNS name of the ALB"
+  type        = string
+}
+
 # ECS Configuration
 variable "ecs_cluster_id" {
   description = "ECS cluster ID where monitoring services will run"
+  type        = string
+}
+
+variable "ecs_cluster_name" {
+  description = "Name of the ECS cluster"
   type        = string
 }
 

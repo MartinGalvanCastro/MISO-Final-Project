@@ -251,15 +251,8 @@ resource "aws_ecs_service" "service" {
     }
   }
 
-  deployment_configuration {
-    maximum_percent         = var.deployment_maximum_percent
-    minimum_healthy_percent = var.deployment_minimum_healthy_percent
-
-    deployment_circuit_breaker {
-      enable   = var.enable_deployment_circuit_breaker
-      rollback = var.enable_deployment_rollback
-    }
-  }
+  deployment_maximum_percent         = var.deployment_maximum_percent
+  deployment_minimum_healthy_percent = var.deployment_minimum_healthy_percent
 
   enable_execute_command = var.enable_execute_command
 

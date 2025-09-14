@@ -197,14 +197,20 @@ resource "aws_ecs_task_definition" "prometheus" {
         }
       ]
 
+      entryPoint = ["sh", "-c"]
       command = [
-        "--config.file=/etc/prometheus/prometheus.yml",
-        "--storage.tsdb.path=/prometheus",
-        "--web.console.libraries=/etc/prometheus/console_libraries",
-        "--web.console.templates=/etc/prometheus/consoles",
-        "--storage.tsdb.retention.time=${var.prometheus_retention_days}d",
-        "--web.enable-lifecycle",
-        "--web.enable-admin-api"
+        <<-EOT
+          mkdir -p /etc/prometheus &&
+          cat > /etc/prometheus/prometheus.yml << 'EOF'
+global:
+  scrape_interval: 15s
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+EOF
+          prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/prometheus --storage.tsdb.retention.time=${var.prometheus_retention_days}d --web.enable-lifecycle --web.enable-admin-api --web.route-prefix=/prometheus --web.external-url=http://${var.alb_dns_name}/prometheus
+        EOT
       ]
 
       environment = [
@@ -219,19 +225,8 @@ resource "aws_ecs_task_definition" "prometheus" {
           sourceVolume  = "prometheus-data"
           containerPath = "/prometheus"
           readOnly      = false
-        },
-        {
-          sourceVolume  = "prometheus-config"
-          containerPath = "/etc/prometheus"
-          readOnly      = true
         }
-      ] : [
-        {
-          sourceVolume  = "prometheus-config"
-          containerPath = "/etc/prometheus"
-          readOnly      = true
-        }
-      ]
+      ] : []
 
       logConfiguration = {
         logDriver = "awslogs"
@@ -258,7 +253,7 @@ resource "aws_ecs_task_definition" "prometheus" {
       name = "prometheus-data"
       efs_volume_configuration {
         file_system_id = aws_efs_file_system.monitoring_efs[0].id
-        root_directory = "/prometheus"
+        root_directory = "/"
         transit_encryption = "ENABLED"
         authorization_config {
           access_point_id = aws_efs_access_point.prometheus_data[0].id
@@ -268,18 +263,6 @@ resource "aws_ecs_task_definition" "prometheus" {
     }
   }
 
-  volume {
-    name = "prometheus-config"
-    efs_volume_configuration {
-      file_system_id = var.enable_persistent_storage ? aws_efs_file_system.monitoring_efs[0].id : null
-      root_directory = "/config"
-      transit_encryption = "ENABLED"
-      authorization_config {
-        access_point_id = var.enable_persistent_storage ? aws_efs_access_point.prometheus_config[0].id : null
-        iam             = "ENABLED"
-      }
-    }
-  }
 
   tags = merge(var.common_tags, {
     Name    = "${var.project_name}-prometheus-task"
@@ -312,29 +295,6 @@ resource "aws_efs_access_point" "prometheus_data" {
   })
 }
 
-resource "aws_efs_access_point" "prometheus_config" {
-  count = var.enable_persistent_storage ? 1 : 0
-
-  file_system_id = aws_efs_file_system.monitoring_efs[0].id
-
-  root_directory {
-    path = "/config"
-    creation_info {
-      owner_gid   = 65534
-      owner_uid   = 65534
-      permissions = 0755
-    }
-  }
-
-  posix_user {
-    gid = 65534
-    uid = 65534
-  }
-
-  tags = merge(var.common_tags, {
-    Name = "${var.project_name}-prometheus-config-ap"
-  })
-}
 
 resource "aws_efs_access_point" "grafana_data" {
   count = var.enable_persistent_storage ? 1 : 0
@@ -389,6 +349,14 @@ resource "aws_ecs_task_definition" "grafana" {
           value = var.grafana_admin_password
         },
         {
+          name  = "GF_SERVER_ROOT_URL"
+          value = "http://${var.alb_dns_name}/grafana"
+        },
+        {
+          name  = "GF_SERVER_SERVE_FROM_SUB_PATH"
+          value = "true"
+        },
+        {
           name  = "GF_INSTALL_PLUGINS"
           value = "grafana-clock-panel,grafana-simple-json-datasource"
         },
@@ -431,7 +399,7 @@ resource "aws_ecs_task_definition" "grafana" {
       name = "grafana-data"
       efs_volume_configuration {
         file_system_id = aws_efs_file_system.monitoring_efs[0].id
-        root_directory = "/grafana"
+        root_directory = "/"
         transit_encryption = "ENABLED"
         authorization_config {
           access_point_id = aws_efs_access_point.grafana_data[0].id

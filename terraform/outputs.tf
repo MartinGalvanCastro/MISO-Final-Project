@@ -402,6 +402,7 @@ output "monitoring_urls" {
 
 output "monitoring_info" {
   description = "Complete monitoring stack information"
+  sensitive   = true
   value = var.enable_sre_monitoring ? module.monitoring[0].monitoring_info : {}
 }
 
@@ -437,5 +438,9 @@ output "load_testing_setup" {
       "ALB target health"
     ]
     health_check_commands = module.monitoring[0].health_check_commands
-  } : {}
+  } : {
+    monitoring_urls = null
+    key_metrics_to_monitor = []
+    health_check_commands = null
+  }
 }

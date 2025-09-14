@@ -190,6 +190,26 @@ module "vpc" {
   common_tags = var.common_tags
 }
 
+# RDS PostgreSQL Database (cheapest configuration)
+module "rds" {
+  source = "./modules/rds"
+
+  project_name    = var.project_name
+  environment     = var.environment
+  vpc_id          = module.vpc.vpc_id
+  private_subnet_ids = module.vpc.private_subnet_ids
+
+  # Allow access from VPC CIDR for now (will be restricted later)
+  allowed_security_groups = []
+
+  # Database configuration
+  database_name     = "medisupply"
+  database_username = "postgres"
+  database_password = var.database_password
+
+  common_tags = var.common_tags
+}
+
 # Application Load Balancer
 module "alb" {
   source = "./modules/alb"
@@ -209,7 +229,6 @@ module "alb" {
   access_logs_prefix = "alb"
 
   # HTTPS Configuration (optional)
-  enable_https = var.alb_enable_https
   certificate_arn = var.alb_certificate_arn
 
   # Target Groups for Services
@@ -274,6 +293,9 @@ module "orders_service_ecs" {
     DEBUG       = "false"
     ENVIRONMENT = var.environment
 
+    # Database Configuration
+    DATABASE_URL = module.rds.database_url
+
     # External Services
     INVENTORY_SERVICE_URL = "http://${var.project_name}-inventory-service:8002"
 
@@ -291,7 +313,7 @@ module "orders_service_ecs" {
   alb_security_group_ids = [module.alb.security_group_id]
 
   # Load Balancer Integration
-  target_group_arns = [module.alb.target_group_arns[0]]
+  target_group_arns = module.alb.target_group_arns
 
   # Auto Scaling Configuration (3-6 replicas as requested)
   desired_count = 3
@@ -355,6 +377,9 @@ module "inventory_service_ecs" {
     DEBUG       = "false"
     ENVIRONMENT = var.environment
 
+    # Database Configuration
+    DATABASE_URL = module.rds.database_url
+
     # AWS Configuration
     AWS_REGION = var.aws_region
   }
@@ -368,7 +393,7 @@ module "inventory_service_ecs" {
   alb_security_group_ids = [module.alb.security_group_id]
 
   # Load Balancer Integration
-  target_group_arns = [module.alb.target_group_arns[1]]
+  target_group_arns = module.alb.target_group_arns
 
   # Auto Scaling Configuration (3-6 replicas as requested)
   desired_count = 3
@@ -498,9 +523,11 @@ module "monitoring" {
   private_subnet_ids       = module.vpc.private_subnet_ids
   alb_security_group_id    = module.alb.security_group_id
   alb_listener_arn         = module.alb.http_listener_arn
+  alb_dns_name            = module.alb.dns_name
 
   # ECS Configuration
   ecs_cluster_id           = module.orders_service_ecs.cluster_id
+  ecs_cluster_name         = module.orders_service_ecs.cluster_name
   ecs_execution_role_arn   = module.orders_service_ecs.task_execution_role_arn
 
   # Monitoring Configuration
