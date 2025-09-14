@@ -103,12 +103,63 @@ module "orders_service_codebuild" {
   build_image     = var.codebuild_image
   privileged_mode = true # Required for Docker builds
 
-  # Source Configuration
-  source_type     = var.codebuild_source_type
-  source_location = var.orders_service_source_location
+  # Source Configuration (using NO_SOURCE to avoid CodeConnections)
+  source_type     = "NO_SOURCE"
+  source_location = null
 
-  # Custom buildspec
-  buildspec_file = file("${path.root}/../services/orders-service/buildspec.yml")
+  # Custom buildspec with manual git clone
+  buildspec_file = <<EOF
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Cloning repository...
+      - git clone https://github.com/MartinGalvanCastro/MISO-Final-Project.git /tmp/source
+      - cd /tmp/source
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - REPOSITORY_URI=$ECR_REPOSITORY_URI
+      - COMMIT_HASH=$(git rev-parse --short HEAD)
+      - IMAGE_TAG=$${IMAGE_TAG:-latest}
+      - BUILD_NUMBER=$${CODEBUILD_BUILD_NUMBER:-1}
+      - VERSION_TAG=$${VERSION_TAG:-v1.0.$BUILD_NUMBER}
+      - echo Build started on `date`
+      - echo Building the Docker image for orders-service...
+      - echo "Repository URI:" $REPOSITORY_URI
+      - echo "Image tags:" $IMAGE_TAG, $VERSION_TAG, $COMMIT_HASH, build-$BUILD_NUMBER
+
+  build:
+    commands:
+      - echo Building Docker image...
+      - cd /tmp/source/services/orders-service
+      - docker build -t $REPOSITORY_URI:latest .
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$VERSION_TAG
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$COMMIT_HASH
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:build-$BUILD_NUMBER
+      - echo Docker image built successfully
+
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker images to ECR...
+      - docker push $REPOSITORY_URI:latest
+      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      - docker push $REPOSITORY_URI:$VERSION_TAG
+      - docker push $REPOSITORY_URI:$COMMIT_HASH
+      - docker push $REPOSITORY_URI:build-$BUILD_NUMBER
+      - echo Docker images pushed successfully
+      - echo "✅ Image URI with latest tag:" $REPOSITORY_URI:latest
+      - echo "✅ Image URI with version tag:" $REPOSITORY_URI:$VERSION_TAG
+      - echo "✅ Image URI with commit hash:" $REPOSITORY_URI:$COMMIT_HASH
+      - echo "✅ Image URI with build number:" $REPOSITORY_URI:build-$BUILD_NUMBER
+
+artifacts:
+  files:
+    - "**/*"
+  name: orders-service-build-artifacts
+EOF
 
   # Environment Variables
   environment_variables = merge(var.codebuild_environment_variables, {
@@ -121,6 +172,9 @@ module "orders_service_codebuild" {
 
   # Monitoring
   enable_build_failure_alarm = var.codebuild_enable_alarms
+
+  # Webhook Configuration (disabled due to CodeConnections requirements)
+  enable_webhook = false
 
   common_tags = merge(var.common_tags, {
     Service = "orders"
@@ -145,12 +199,63 @@ module "inventory_service_codebuild" {
   build_image     = var.codebuild_image
   privileged_mode = true # Required for Docker builds
 
-  # Source Configuration
-  source_type     = var.codebuild_source_type
-  source_location = var.inventory_service_source_location
+  # Source Configuration (using NO_SOURCE to avoid CodeConnections)
+  source_type     = "NO_SOURCE"
+  source_location = null
 
-  # Custom buildspec
-  buildspec_file = file("${path.root}/../services/inventory-service/buildspec.yml")
+  # Custom buildspec with manual git clone
+  buildspec_file = <<EOF
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Cloning repository...
+      - git clone https://github.com/MartinGalvanCastro/MISO-Final-Project.git /tmp/source
+      - cd /tmp/source
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - REPOSITORY_URI=$ECR_REPOSITORY_URI
+      - COMMIT_HASH=$(git rev-parse --short HEAD)
+      - IMAGE_TAG=$${IMAGE_TAG:-latest}
+      - BUILD_NUMBER=$${CODEBUILD_BUILD_NUMBER:-1}
+      - VERSION_TAG=$${VERSION_TAG:-v1.0.$BUILD_NUMBER}
+      - echo Build started on `date`
+      - echo Building the Docker image for inventory-service...
+      - echo "Repository URI:" $REPOSITORY_URI
+      - echo "Image tags:" $IMAGE_TAG, $VERSION_TAG, $COMMIT_HASH, build-$BUILD_NUMBER
+
+  build:
+    commands:
+      - echo Building Docker image...
+      - cd /tmp/source/services/inventory-service
+      - docker build -t $REPOSITORY_URI:latest .
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$VERSION_TAG
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$COMMIT_HASH
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:build-$BUILD_NUMBER
+      - echo Docker image built successfully
+
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker images to ECR...
+      - docker push $REPOSITORY_URI:latest
+      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      - docker push $REPOSITORY_URI:$VERSION_TAG
+      - docker push $REPOSITORY_URI:$COMMIT_HASH
+      - docker push $REPOSITORY_URI:build-$BUILD_NUMBER
+      - echo Docker images pushed successfully
+      - echo "✅ Image URI with latest tag:" $REPOSITORY_URI:latest
+      - echo "✅ Image URI with version tag:" $REPOSITORY_URI:$VERSION_TAG
+      - echo "✅ Image URI with commit hash:" $REPOSITORY_URI:$COMMIT_HASH
+      - echo "✅ Image URI with build number:" $REPOSITORY_URI:build-$BUILD_NUMBER
+
+artifacts:
+  files:
+    - "**/*"
+  name: inventory-service-build-artifacts
+EOF
 
   # Environment Variables
   environment_variables = merge(var.codebuild_environment_variables, {
@@ -163,6 +268,9 @@ module "inventory_service_codebuild" {
 
   # Monitoring
   enable_build_failure_alarm = var.codebuild_enable_alarms
+
+  # Webhook Configuration (disabled due to CodeConnections requirements)
+  enable_webhook = false
 
   common_tags = merge(var.common_tags, {
     Service = "inventory"

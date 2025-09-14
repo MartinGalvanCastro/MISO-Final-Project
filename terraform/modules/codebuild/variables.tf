@@ -202,6 +202,25 @@ variable "alarm_actions" {
   default     = []
 }
 
+# Webhook Configuration
+variable "enable_webhook" {
+  description = "Enable GitHub webhook for automatic builds"
+  type        = bool
+  default     = true
+}
+
+variable "service_path_filter" {
+  description = "Path filter for webhook to trigger builds only when specific service directory changes"
+  type        = string
+  default     = null
+}
+
+variable "webhook_branch_filter" {
+  description = "Branch filter for webhook (e.g., '^refs/heads/main$')"
+  type        = string
+  default     = "^refs/heads/main$"
+}
+
 # Tags
 variable "common_tags" {
   description = "Common tags to apply to all resources"

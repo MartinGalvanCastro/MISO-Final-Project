@@ -158,9 +158,6 @@ cython_debug/
 #  project, it is recommended to ignore whole .idea folders.
 .idea/
 
-# UV
-uv.lock
-
 # VS Code
 .vscode/
 

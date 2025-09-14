@@ -178,6 +178,25 @@ resource "aws_codebuild_project" "project" {
   })
 }
 
+# GitHub Webhook for automatic builds
+resource "aws_codebuild_webhook" "github_webhook" {
+  count        = var.source_type == "GITHUB" && var.enable_webhook ? 1 : 0
+  project_name = aws_codebuild_project.project.name
+
+  filter_group {
+    filter {
+      type    = "EVENT"
+      pattern = "PUSH"
+    }
+
+    # Filter for the main branch only
+    filter {
+      type    = "HEAD_REF"
+      pattern = "^refs/heads/main$"
+    }
+  }
+}
+
 # CloudWatch Alarms for monitoring build failures
 resource "aws_cloudwatch_metric_alarm" "build_failure_alarm" {
   count = var.enable_build_failure_alarm ? 1 : 0
