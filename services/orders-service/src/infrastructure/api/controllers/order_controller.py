@@ -132,7 +132,6 @@ async def create_order(
     
     order = Order(
         client_id=request.client_id,
-        vendor_id=request.vendor_id,
         items=order_items
     )
     
@@ -144,7 +143,6 @@ async def create_order(
         id=result.id,
         order_number=result.order_number,
         client_id=result.client_id,
-        vendor_id=result.vendor_id,
         items=[
             OrderItemResponse(
                 product_id=item.product_id,
@@ -239,7 +237,6 @@ async def get_order(
         id=order.id,
         order_number=order.order_number,
         client_id=order.client_id,
-        vendor_id=order.vendor_id,
         items=[
             OrderItemResponse(
                 product_id=item.product_id,
@@ -333,7 +330,6 @@ async def get_orders(
             id=order.id,
             order_number=order.order_number,
             client_id=order.client_id,
-            vendor_id=order.vendor_id,
             items=[
                 OrderItemResponse(
                     product_id=item.product_id,

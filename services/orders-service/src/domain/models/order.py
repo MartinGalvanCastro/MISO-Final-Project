@@ -24,7 +24,6 @@ class OrderItem:
 @dataclass
 class Order:
     client_id: str
-    vendor_id: str
     items: list[OrderItem]
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     order_number: str = field(default_factory=lambda: str(uuid.uuid4())[:8].upper())
@@ -49,21 +48,21 @@ class Order:
     def reject(self) -> None:
         self.status = OrderStatus.REJECTED
 
-    def validate_order(self) -> tuple[bool, str]:
+    def validate_business_rules(self) -> tuple[bool, str]:
         """Returns (is_valid, error_message)"""
         if not self.items:
             return False, "Order must have at least one item"
-        
+
         if self.total < 10.0:
             return False, "Order minimum is $10"
-        
+
         if len(self.items) > 100:
             return False, "Order cannot exceed 100 items"
-        
+
         for item in self.items:
             if item.quantity <= 0:
                 return False, "Item quantity must be positive"
             if item.price < 0:
                 return False, "Item price cannot be negative"
-        
+
         return True, ""

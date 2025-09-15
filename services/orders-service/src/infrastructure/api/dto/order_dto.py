@@ -30,14 +30,12 @@ class OrderItemResponse(BaseModel):
 class CreateOrderRequest(BaseModel):
     """Request model for creating a new order"""
     client_id: str = Field(..., description="Unique identifier for the client", example="client-456")
-    vendor_id: str = Field(..., description="Unique identifier for the vendor", example="vendor-789")
     items: list[OrderItemDTO] = Field(..., description="List of items to include in the order", min_items=1)
 
     class Config:
         json_schema_extra = {
             "example": {
                 "client_id": "client-456",
-                "vendor_id": "vendor-789",
                 "items": [
                     {
                         "product_id": "prod-123",
@@ -59,7 +57,6 @@ class OrderResponse(BaseModel):
     id: str = Field(..., description="Unique identifier for the order", example="550e8400-e29b-41d4-a716-446655440000")
     order_number: str = Field(..., description="Human-readable order number", example="ORD-A1B2C3D4")
     client_id: str = Field(..., description="Unique identifier for the client", example="client-456")
-    vendor_id: str = Field(..., description="Unique identifier for the vendor", example="vendor-789")
     items: list[OrderItemResponse] = Field(..., description="List of items in the order")
     total: float = Field(..., description="Total amount for the order", example=75.48)
     status: str = Field(..., description="Current status of the order", example="pending")
@@ -72,7 +69,6 @@ class OrderResponse(BaseModel):
                 "id": "550e8400-e29b-41d4-a716-446655440000",
                 "order_number": "ORD-A1B2C3D4",
                 "client_id": "client-456",
-                "vendor_id": "vendor-789",
                 "items": [
                     {
                         "product_id": "prod-123",

@@ -21,7 +21,6 @@ class PostgresOrderRepository(OrderRepository):
         db_order.id = order.id
         db_order.order_number = order.order_number
         db_order.client_id = order.client_id
-        db_order.vendor_id = order.vendor_id
         db_order.items = [
             {
                 "product_id": item.product_id,
@@ -72,12 +71,11 @@ class PostgresOrderRepository(OrderRepository):
         
         order = Order(
             client_id=db_order.client_id,
-            vendor_id=db_order.vendor_id,
             items=items
         )
         order.id = db_order.id
         order.order_number = db_order.order_number
-        order.status = OrderStatus(db_order.status.value)
+        order.status = OrderStatus(db_order.status)
         order.created_at = db_order.created_at
         order.delivery_id = db_order.delivery_id
         

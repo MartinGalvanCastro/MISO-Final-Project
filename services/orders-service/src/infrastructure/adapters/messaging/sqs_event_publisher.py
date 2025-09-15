@@ -15,9 +15,13 @@ class SQSEventPublisher(EventPublisher):
     
     def __init__(self):
         self.queue_url = settings.SQS_QUEUE_URL
-        
+        self.is_mock = self.queue_url.startswith('mock://')
+
         # Configure client based on environment
-        if settings.AWS_ENDPOINT_URL:  # LocalStack
+        if self.is_mock:
+            # Mock mode - no real SQS client needed
+            self.sqs_client = None
+        elif settings.AWS_ENDPOINT_URL:  # LocalStack
             self.sqs_client = boto3.client(
                 'sqs',
                 region_name=settings.AWS_REGION,
@@ -40,7 +44,12 @@ class SQSEventPublisher(EventPublisher):
                 "event_type": event_type,
                 "payload": payload
             }
-            
+
+            if self.is_mock:
+                # Mock mode - just log the event
+                logger.info(f"[MOCK] Published {event_type} event: {json.dumps(message, indent=2)}")
+                return
+
             response = self.sqs_client.send_message(
                 QueueUrl=self.queue_url,
                 MessageBody=json.dumps(message),
@@ -51,13 +60,13 @@ class SQSEventPublisher(EventPublisher):
                     }
                 }
             )
-            
+
             logger.info(f"Published {event_type} event with MessageId: {response['MessageId']}")
-            
+
         except ClientError as e:
             logger.error(f"AWS client error publishing event: {e}")
             raise
-            
+
         except Exception as e:
             logger.error(f"Unexpected error publishing event: {str(e)}")
             raise

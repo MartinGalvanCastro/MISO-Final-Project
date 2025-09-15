@@ -109,7 +109,6 @@ class CreateOrderUseCase:
             "order_id": order.id,
             "order_number": order.order_number,
             "client_id": order.client_id,
-            "vendor_id": order.vendor_id,
             "total": order.total,
             "items": [
                 {
