@@ -298,6 +298,18 @@ module "vpc" {
   common_tags = var.common_tags
 }
 
+# CodeStar Connection for GitHub
+resource "aws_codestarconnections_connection" "github" {
+  name          = "${var.project_name}-github-connection"
+  provider_type = "GitHub"
+
+  tags = merge(var.common_tags, {
+    Name        = "${var.project_name}-github-connection"
+    Description = "CodeStar connection to GitHub for CodePipeline"
+    Purpose     = "CI/CD"
+  })
+}
+
 # S3 Bucket for CodePipeline Artifacts
 resource "aws_s3_bucket" "codepipeline_artifacts" {
   bucket = "${var.project_name}-codepipeline-artifacts-${random_id.bucket_suffix.hex}"
@@ -834,9 +846,10 @@ module "orders_service_codepipeline" {
   service_name  = "orders"
 
   # Source Configuration
-  github_owner  = var.github_owner
-  github_repo   = var.github_repo
-  github_branch = var.github_branch
+  github_owner         = var.github_owner
+  github_repo          = var.github_repo
+  github_branch        = var.github_branch
+  github_connection_arn = aws_codestarconnections_connection.github.arn
 
   # Build Configuration
   codebuild_project_name = module.orders_service_codebuild.project_name
@@ -877,9 +890,10 @@ module "inventory_service_codepipeline" {
   service_name  = "inventory"
 
   # Source Configuration
-  github_owner  = var.github_owner
-  github_repo   = var.github_repo
-  github_branch = var.github_branch
+  github_owner         = var.github_owner
+  github_repo          = var.github_repo
+  github_branch        = var.github_branch
+  github_connection_arn = aws_codestarconnections_connection.github.arn
 
   # Build Configuration
   codebuild_project_name = module.inventory_service_codebuild.project_name

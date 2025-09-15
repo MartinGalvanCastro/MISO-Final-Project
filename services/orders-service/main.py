@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # Create FastAPI app
 app = FastAPI(
     title="Orders Service",
-    version="1.0.0",
+    version="2.0.0",
     description="""
 ## Orders Service API
 

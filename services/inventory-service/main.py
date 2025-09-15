@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 # Create FastAPI app
 app = FastAPI(
     title="Inventory Service",
-    version="1.0.0",
+    version="2.0.0",
     description="""
 ## Inventory Service API
 
