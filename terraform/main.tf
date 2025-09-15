@@ -103,9 +103,12 @@ module "orders_service_codebuild" {
   build_image     = var.codebuild_image
   privileged_mode = true # Required for Docker builds
 
-  # Source Configuration (using NO_SOURCE to avoid CodeConnections)
-  source_type     = "NO_SOURCE"
-  source_location = null
+  # Source Configuration (GitHub direct access)
+  source_type     = "GITHUB"
+  source_location = var.orders_service_source_location
+
+  # Disable webhook since we use GitHub Actions
+  enable_webhook  = false
 
   # Custom buildspec with manual git clone
   buildspec_file = <<EOF
@@ -114,9 +117,7 @@ version: 0.2
 phases:
   pre_build:
     commands:
-      - echo Cloning repository...
-      - git clone https://github.com/MartinGalvanCastro/MISO-Final-Project.git /tmp/source
-      - cd /tmp/source
+      - cd services/orders-service
       - echo Logging in to Amazon ECR...
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
       - REPOSITORY_URI=$ECR_REPOSITORY_URI
@@ -173,8 +174,8 @@ EOF
   # Monitoring
   enable_build_failure_alarm = var.codebuild_enable_alarms
 
-  # Webhook Configuration
-  enable_webhook = true
+  # Webhook Configuration (disabled - using GitHub Actions)
+  # enable_webhook = false
 
   common_tags = merge(var.common_tags, {
     Service = "orders"
@@ -199,9 +200,12 @@ module "inventory_service_codebuild" {
   build_image     = var.codebuild_image
   privileged_mode = true # Required for Docker builds
 
-  # Source Configuration (using NO_SOURCE to avoid CodeConnections)
-  source_type     = "NO_SOURCE"
-  source_location = null
+  # Source Configuration (GitHub direct access)
+  source_type     = "GITHUB"
+  source_location = var.inventory_service_source_location
+
+  # Disable webhook since we use GitHub Actions
+  enable_webhook  = false
 
   # Custom buildspec with manual git clone
   buildspec_file = <<EOF
@@ -210,9 +214,7 @@ version: 0.2
 phases:
   pre_build:
     commands:
-      - echo Cloning repository...
-      - git clone https://github.com/MartinGalvanCastro/MISO-Final-Project.git /tmp/source
-      - cd /tmp/source
+      - cd services/inventory-service
       - echo Logging in to Amazon ECR...
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
       - REPOSITORY_URI=$ECR_REPOSITORY_URI
@@ -269,8 +271,8 @@ EOF
   # Monitoring
   enable_build_failure_alarm = var.codebuild_enable_alarms
 
-  # Webhook Configuration
-  enable_webhook = true
+  # Webhook Configuration (disabled - using GitHub Actions)
+  # enable_webhook = false
 
   common_tags = merge(var.common_tags, {
     Service = "inventory"

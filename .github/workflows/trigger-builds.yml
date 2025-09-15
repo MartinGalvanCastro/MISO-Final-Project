@@ -24,10 +24,16 @@ jobs:
             inventory:
               - 'services/inventory-service/**'
 
-  trigger-orders-build:
+  trigger-builds:
     needs: detect-changes
-    if: needs.detect-changes.outputs.orders-changed == 'true'
+    if: needs.detect-changes.outputs.orders-changed == 'true' || needs.detect-changes.outputs.inventory-changed == 'true'
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [
+          { name: "orders", project: "medisupply-orders-service-build", changed: "${{ needs.detect-changes.outputs.orders-changed }}" },
+          { name: "inventory", project: "medisupply-inventory-service-build", changed: "${{ needs.detect-changes.outputs.inventory-changed }}" }
+        ]
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -36,15 +42,22 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Trigger Orders Service Build
+      - name: Trigger ${{ matrix.service.name }} Service Build
+        if: matrix.service.changed == 'true'
         run: |
-          echo "🚀 Triggering build for Orders Service"
-          aws codebuild start-build --project-name medisupply-orders-service-build
+          echo "🚀 Triggering build for ${{ matrix.service.name }} Service"
+          aws codebuild start-build --project-name ${{ matrix.service.project }}
 
-  trigger-inventory-build:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.inventory-changed == 'true'
+  # Alternative: Always build both services in parallel (uncomment if you want to build both regardless of changes)
+  trigger-all-builds:
+    if: false  # Set to true to enable building both services always
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [
+          { name: "orders", project: "medisupply-orders-service-build" },
+          { name: "inventory", project: "medisupply-inventory-service-build" }
+        ]
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -53,7 +66,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Trigger Inventory Service Build
+      - name: Trigger ${{ matrix.service.name }} Service Build
         run: |
-          echo "🚀 Triggering build for Inventory Service"
-          aws codebuild start-build --project-name medisupply-inventory-service-build
+          echo "🚀 Triggering build for ${{ matrix.service.name }} Service"
+          aws codebuild start-build --project-name ${{ matrix.service.project }}
