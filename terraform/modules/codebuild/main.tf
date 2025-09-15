@@ -65,6 +65,17 @@ resource "aws_iam_role_policy" "codebuild_policy" {
           "ecr:PutImage"
         ]
         Resource = var.ecr_repository_arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "codedeploy:CreateDeployment",
+          "codedeploy:GetApplication",
+          "codedeploy:GetDeployment",
+          "codedeploy:GetDeploymentConfig",
+          "codedeploy:RegisterApplicationRevision"
+        ]
+        Resource = "*"
       }
     ], var.artifacts_bucket_arn != null ? [
       {

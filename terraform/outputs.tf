@@ -138,49 +138,38 @@ output "service_configuration" {
   }
 }
 
-# CodeBuild Outputs
-output "orders_service_codebuild_project_name" {
-  description = "Name of the orders service CodeBuild project"
-  value       = module.orders_service_codebuild.project_name
-}
-
-output "orders_service_codebuild_project_arn" {
-  description = "ARN of the orders service CodeBuild project"
-  value       = module.orders_service_codebuild.project_arn
-}
-
-output "inventory_service_codebuild_project_name" {
-  description = "Name of the inventory service CodeBuild project"
-  value       = module.inventory_service_codebuild.project_name
-}
-
-output "inventory_service_codebuild_project_arn" {
-  description = "ARN of the inventory service CodeBuild project"
-  value       = module.inventory_service_codebuild.project_arn
-}
-
-# Comprehensive CodeBuild Information
-output "codebuild_projects" {
-  description = "Map of all CodeBuild projects created"
+# CI/CD Information - GitHub Actions based
+output "github_actions_info" {
+  description = "Information about the GitHub Actions CI/CD setup"
   value = {
-    orders_service    = module.orders_service_codebuild.project_info
-    inventory_service = module.inventory_service_codebuild.project_info
+    workflow_file = ".github/workflows/ci-cd.yml"
+    trigger_events = ["push to main", "workflow_dispatch"]
+    path_filters = {
+      orders_service = "services/orders-service/**"
+      inventory_service = "services/inventory-service/**"
+    }
+    deployment_strategy = "blue-green via CodeDeploy"
   }
 }
 
-# CI/CD Commands
+# CI/CD Commands for GitHub Actions
 output "cicd_commands" {
-  description = "Useful commands for CI/CD operations"
+  description = "Useful commands for CI/CD operations with GitHub Actions"
   value = {
-    orders_service = {
-      start_build              = module.orders_service_codebuild.build_commands.start_build
-      start_build_with_version = module.orders_service_codebuild.build_commands.start_build_with_version
-      list_builds             = module.orders_service_codebuild.build_commands.list_builds
+    github_actions = {
+      manual_trigger = "gh workflow run ci-cd.yml"
+      check_status = "gh run list --workflow=ci-cd.yml"
+      view_logs = "gh run view --log"
     }
-    inventory_service = {
-      start_build              = module.inventory_service_codebuild.build_commands.start_build
-      start_build_with_version = module.inventory_service_codebuild.build_commands.start_build_with_version
-      list_builds             = module.inventory_service_codebuild.build_commands.list_builds
+    codedeploy = {
+      orders_service = {
+        create_deployment = "aws deploy create-deployment --application-name medisupply-orders-service-codedeploy --deployment-group-name orders-deployment-group --deployment-config-name medisupply-orders-service-codedeploy-Linear10PercentEvery1MinuteFor10Minutes"
+        list_deployments = "aws deploy list-deployments --application-name medisupply-orders-service-codedeploy"
+      }
+      inventory_service = {
+        create_deployment = "aws deploy create-deployment --application-name medisupply-inventory-service-codedeploy --deployment-group-name inventory-deployment-group --deployment-config-name medisupply-inventory-service-codedeploy-Linear10PercentEvery1MinuteFor10Minutes"
+        list_deployments = "aws deploy list-deployments --application-name medisupply-inventory-service-codedeploy"
+      }
     }
   }
 }
@@ -411,7 +400,7 @@ output "cost_optimization_summary" {
   value = {
     cloudwatch_log_retention = {
       ecs_services = "${var.ecs_log_retention_days} days (reduced from 14)"
-      codebuild = "${var.codebuild_log_retention_days} days (reduced from 14)"
+      github_actions = "Managed by GitHub Actions (no additional CloudWatch costs)"
       codedeploy = "${var.codedeploy_log_retention_days} days (reduced from 30)"
       monitoring = "${var.monitoring_log_retention_days} days"
     }
