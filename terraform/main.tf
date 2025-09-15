@@ -421,6 +421,160 @@ module "alb" {
   common_tags = var.common_tags
 }
 
+# Blue/Green Target Groups for CodeDeploy
+# Orders Service Blue Target Group
+resource "aws_lb_target_group" "orders_blue" {
+  name        = "${var.project_name}-orders-blue-tg"
+  port        = 8001
+  protocol    = "HTTP"
+  vpc_id      = module.vpc.vpc_id
+  target_type = "ip"
+
+  health_check {
+    enabled             = true
+    healthy_threshold   = 2
+    interval            = 30
+    matcher             = "200"
+    path                = "/api/orders/health"
+    port                = "traffic-port"
+    protocol            = "HTTP"
+    timeout             = 5
+    unhealthy_threshold = 2
+  }
+
+  tags = merge(var.common_tags, {
+    Name    = "${var.project_name}-orders-blue-tg"
+    Service = "orders"
+    Type    = "blue"
+  })
+}
+
+# Orders Service Green Target Group
+resource "aws_lb_target_group" "orders_green" {
+  name        = "${var.project_name}-orders-green-tg"
+  port        = 8001
+  protocol    = "HTTP"
+  vpc_id      = module.vpc.vpc_id
+  target_type = "ip"
+
+  health_check {
+    enabled             = true
+    healthy_threshold   = 2
+    interval            = 30
+    matcher             = "200"
+    path                = "/api/orders/health"
+    port                = "traffic-port"
+    protocol            = "HTTP"
+    timeout             = 5
+    unhealthy_threshold = 2
+  }
+
+  tags = merge(var.common_tags, {
+    Name    = "${var.project_name}-orders-green-tg"
+    Service = "orders"
+    Type    = "green"
+  })
+}
+
+# Inventory Service Blue Target Group
+resource "aws_lb_target_group" "inventory_blue" {
+  name        = "${var.project_name}-inventory-blue-tg"
+  port        = 8002
+  protocol    = "HTTP"
+  vpc_id      = module.vpc.vpc_id
+  target_type = "ip"
+
+  health_check {
+    enabled             = true
+    healthy_threshold   = 2
+    interval            = 30
+    matcher             = "200"
+    path                = "/api/inventory/health"
+    port                = "traffic-port"
+    protocol            = "HTTP"
+    timeout             = 5
+    unhealthy_threshold = 2
+  }
+
+  tags = merge(var.common_tags, {
+    Name    = "${var.project_name}-inventory-blue-tg"
+    Service = "inventory"
+    Type    = "blue"
+  })
+}
+
+# Inventory Service Green Target Group
+resource "aws_lb_target_group" "inventory_green" {
+  name        = "${var.project_name}-inventory-green-tg"
+  port        = 8002
+  protocol    = "HTTP"
+  vpc_id      = module.vpc.vpc_id
+  target_type = "ip"
+
+  health_check {
+    enabled             = true
+    healthy_threshold   = 2
+    interval            = 30
+    matcher             = "200"
+    path                = "/api/inventory/health"
+    port                = "traffic-port"
+    protocol            = "HTTP"
+    timeout             = 5
+    unhealthy_threshold = 2
+  }
+
+  tags = merge(var.common_tags, {
+    Name    = "${var.project_name}-inventory-green-tg"
+    Service = "inventory"
+    Type    = "green"
+  })
+}
+
+# ALB Listener Rules for Blue Target Groups
+resource "aws_lb_listener_rule" "orders_blue" {
+  listener_arn = module.alb.http_listener_arn
+  priority     = 100
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.orders_blue.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/api/orders*"]
+    }
+  }
+
+  tags = merge(var.common_tags, {
+    Name    = "${var.project_name}-orders-blue-rule"
+    Service = "orders"
+    Type    = "blue"
+  })
+}
+
+resource "aws_lb_listener_rule" "inventory_blue" {
+  listener_arn = module.alb.http_listener_arn
+  priority     = 210
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.inventory_blue.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/api/inventory*"]
+    }
+  }
+
+  tags = merge(var.common_tags, {
+    Name    = "${var.project_name}-inventory-blue-rule"
+    Service = "inventory"
+    Type    = "blue"
+  })
+}
+
 # ECS Fargate Deployment - Orders Service
 module "orders_service_ecs" {
   source = "./modules/ecs-fargate"
@@ -461,8 +615,8 @@ module "orders_service_ecs" {
   subnet_ids = module.vpc.private_subnet_ids
   alb_security_group_ids = [module.alb.security_group_id]
 
-  # Load Balancer Integration
-  target_group_arns = module.alb.target_group_arns
+  # Load Balancer Integration (Blue Target Group for Blue-Green Deployment)
+  target_group_arns = [aws_lb_target_group.orders_blue.arn]
 
   # Auto Scaling Configuration (3-6 replicas as requested)
   desired_count = 3
@@ -544,8 +698,8 @@ module "inventory_service_ecs" {
   subnet_ids = module.vpc.private_subnet_ids
   alb_security_group_ids = [module.alb.security_group_id]
 
-  # Load Balancer Integration
-  target_group_arns = module.alb.target_group_arns
+  # Load Balancer Integration (Blue Target Group for Blue-Green Deployment)
+  target_group_arns = [aws_lb_target_group.inventory_blue.arn]
 
   # Auto Scaling Configuration (3-6 replicas as requested)
   desired_count = 3
@@ -593,7 +747,10 @@ module "orders_service_codedeploy" {
   ecs_execution_role_arn = module.orders_service_ecs.task_execution_role_arn
 
   # Load Balancer Configuration
-  target_group_name = "${var.project_name}-orders-tg"
+  target_group_name = "${var.project_name}-orders-tg"  # deprecated
+  blue_target_group_name  = aws_lb_target_group.orders_blue.name
+  green_target_group_name = aws_lb_target_group.orders_green.name
+  listener_arn = module.alb.http_listener_arn
 
   # Blue-Green Deployment Configuration
   termination_wait_time_minutes = var.codedeploy_termination_wait_time_minutes
@@ -601,8 +758,8 @@ module "orders_service_codedeploy" {
   # Auto Rollback Configuration
   auto_rollback_enabled = var.codedeploy_auto_rollback_enabled
 
-  # ECR Integration for Auto-deployment
-  enable_auto_deployment = var.codedeploy_enable_auto_deployment
+  # ECR Integration for Auto-deployment (disabled - using CodePipeline instead)
+  enable_auto_deployment = false
   ecr_repository_name    = var.orders_service_repo_name
   ecr_trigger_tags       = var.codedeploy_ecr_trigger_tags
 
@@ -637,7 +794,10 @@ module "inventory_service_codedeploy" {
   ecs_execution_role_arn = module.inventory_service_ecs.task_execution_role_arn
 
   # Load Balancer Configuration
-  target_group_name = "${var.project_name}-inventory-tg"
+  target_group_name = "${var.project_name}-inventory-tg"  # deprecated
+  blue_target_group_name  = aws_lb_target_group.inventory_blue.name
+  green_target_group_name = aws_lb_target_group.inventory_green.name
+  listener_arn = module.alb.http_listener_arn
 
   # Blue-Green Deployment Configuration
   termination_wait_time_minutes = var.codedeploy_termination_wait_time_minutes
@@ -645,8 +805,8 @@ module "inventory_service_codedeploy" {
   # Auto Rollback Configuration
   auto_rollback_enabled = var.codedeploy_auto_rollback_enabled
 
-  # ECR Integration for Auto-deployment
-  enable_auto_deployment = var.codedeploy_enable_auto_deployment
+  # ECR Integration for Auto-deployment (disabled - using CodePipeline instead)
+  enable_auto_deployment = false
   ecr_repository_name    = var.inventory_service_repo_name
   ecr_trigger_tags       = var.codedeploy_ecr_trigger_tags
 

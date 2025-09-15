@@ -95,6 +95,7 @@ resource "aws_codedeploy_deployment_group" "deployment_group" {
   app_name               = aws_codedeploy_app.app.name
   deployment_group_name  = var.deployment_group_name
   service_role_arn      = aws_iam_role.codedeploy_role.arn
+  deployment_config_name = aws_codedeploy_deployment_config.linear_10_percent.deployment_config_name
 
   auto_rollback_configuration {
     enabled = var.auto_rollback_enabled
@@ -111,10 +112,6 @@ resource "aws_codedeploy_deployment_group" "deployment_group" {
       action_on_timeout = var.deployment_ready_action
       wait_time_in_minutes = var.deployment_ready_wait_time_minutes
     }
-
-    green_fleet_provisioning_option {
-      action = "COPY_AUTO_SCALING_GROUP"
-    }
   }
 
   deployment_style {
@@ -128,10 +125,22 @@ resource "aws_codedeploy_deployment_group" "deployment_group" {
   }
 
   load_balancer_info {
-    target_group_info {
-      name = var.target_group_name
+    target_group_pair_info {
+      prod_traffic_route {
+        listener_arns = [var.listener_arn]
+      }
+      target_group {
+        name = var.blue_target_group_name
+      }
+      target_group {
+        name = var.green_target_group_name
+      }
     }
   }
+
+
+
+
 
   dynamic "trigger_configuration" {
     for_each = var.trigger_configurations

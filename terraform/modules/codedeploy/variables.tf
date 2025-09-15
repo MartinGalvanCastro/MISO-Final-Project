@@ -38,7 +38,23 @@ variable "ecs_execution_role_arn" {
 
 # Load Balancer Configuration
 variable "target_group_name" {
-  description = "Name of the target group"
+  description = "Name of the target group (deprecated - use blue/green target groups)"
+  type        = string
+  default     = ""
+}
+
+variable "blue_target_group_name" {
+  description = "Name of the blue target group for blue-green deployment"
+  type        = string
+}
+
+variable "green_target_group_name" {
+  description = "Name of the green target group for blue-green deployment"
+  type        = string
+}
+
+variable "listener_arn" {
+  description = "ARN of the ALB listener for blue-green deployment"
   type        = string
 }
 
@@ -71,7 +87,7 @@ variable "auto_rollback_enabled" {
 variable "auto_rollback_events" {
   description = "Events that trigger automatic rollback"
   type        = list(string)
-  default     = ["DEPLOYMENT_FAILURE", "DEPLOYMENT_STOP_ON_ALARM", "DEPLOYMENT_STOP_ON_INSTANCE_FAILURE"]
+  default     = ["DEPLOYMENT_FAILURE", "DEPLOYMENT_STOP_ON_ALARM"]
 }
 
 # ECR Integration for Auto-deployment
