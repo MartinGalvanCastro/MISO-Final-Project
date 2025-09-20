@@ -71,3 +71,25 @@ module "alb" {
   subnet_ids           = module.vpc.public_subnet_ids
   alb_security_group_id = module.vpc.alb_security_group_id
 }
+
+# CodeDeploy Module
+module "codedeploy" {
+  source = "./modules/codedeploy"
+
+  project_name = var.project_name
+  environment  = var.environment
+
+  # ECS cluster and service names
+  ecs_cluster_name = module.ecs.cluster_name
+
+  orders_service_name     = module.ecs.orders_service_name
+  inventory_service_name  = module.ecs.inventory_service_name
+  prometheus_service_name = module.ecs.prometheus_service_name
+  grafana_service_name    = module.ecs.grafana_service_name
+
+  # Target group names
+  orders_target_group_name     = module.alb.target_group_names.orders_service
+  inventory_target_group_name  = module.alb.target_group_names.inventory_service
+  prometheus_target_group_name = module.alb.target_group_names.prometheus
+  grafana_target_group_name    = module.alb.target_group_names.grafana
+}

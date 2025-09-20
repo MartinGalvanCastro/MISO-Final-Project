@@ -106,6 +106,10 @@ resource "aws_ecs_service" "orders_service" {
   desired_count   = var.orders_service_min_capacity
   launch_type     = "FARGATE"
 
+  deployment_controller {
+    type = "CODE_DEPLOY"
+  }
+
   network_configuration {
     subnets          = var.subnet_ids
     security_groups  = var.security_group_ids
@@ -268,6 +272,10 @@ resource "aws_ecs_service" "inventory_service" {
   desired_count   = var.inventory_service_desired_count
   launch_type     = "FARGATE"
 
+  deployment_controller {
+    type = "CODE_DEPLOY"
+  }
+
   network_configuration {
     subnets          = var.subnet_ids
     security_groups  = var.security_group_ids
@@ -295,3 +303,4 @@ resource "aws_ecs_service" "inventory_service" {
     Service     = "inventory-service"
   }
 }
+

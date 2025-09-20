@@ -62,3 +62,23 @@ output "task_definitions" {
     grafana          = aws_ecs_task_definition.grafana.arn
   }
 }
+
+output "orders_service_name" {
+  description = "Name of the orders ECS service"
+  value       = aws_ecs_service.orders_service.name
+}
+
+output "inventory_service_name" {
+  description = "Name of the inventory ECS service"
+  value       = aws_ecs_service.inventory_service.name
+}
+
+output "prometheus_service_name" {
+  description = "Name of the prometheus ECS service"
+  value       = aws_ecs_service.prometheus.name
+}
+
+output "grafana_service_name" {
+  description = "Name of the grafana ECS service"
+  value       = aws_ecs_service.grafana.name
+}

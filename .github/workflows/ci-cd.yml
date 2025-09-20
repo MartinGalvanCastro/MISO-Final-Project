@@ -81,30 +81,20 @@ jobs:
           echo "✅ Orders service image pushed to ECR"
           echo "📦 Image URI: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
-      - name: Deploy to ECS
+      - name: Deploy to ECS via CodeDeploy Blue-Green
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: medisupply/orders-service
           IMAGE_TAG: ${{ github.sha }}
-          SERVICE_NAME: medisupply-orders-service
         run: |
-          echo "🚀 Deploying Orders Service to ECS..."
+          echo "🚀 Starting Blue-Green deployment for Orders Service..."
 
-          # Update ECS service to use new image
-          aws ecs update-service \
-            --cluster $ECS_CLUSTER \
-            --service $SERVICE_NAME \
-            --force-new-deployment
+          # Use the deployment script for proper blue-green deployment
+          chmod +x scripts/deploy-service.sh
+          ./scripts/deploy-service.sh orders-service $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-          echo "✅ ECS service update initiated"
-
-          # Wait for deployment to stabilize
-          echo "⏳ Waiting for deployment to complete..."
-          aws ecs wait services-stable \
-            --cluster $ECS_CLUSTER \
-            --services $SERVICE_NAME
-
-          echo "🎉 Orders Service deployment completed successfully!"
+          echo "✅ Orders Service Blue-Green deployment initiated"
+          echo "🔄 Linear traffic shifting: 10% every minute over 10 minutes"
 
   # Build and deploy Inventory Service
   deploy-inventory:
@@ -149,30 +139,20 @@ jobs:
           echo "✅ Inventory service image pushed to ECR"
           echo "📦 Image URI: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
-      - name: Deploy to ECS
+      - name: Deploy to ECS via CodeDeploy Blue-Green
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: medisupply/inventory-service
           IMAGE_TAG: ${{ github.sha }}
-          SERVICE_NAME: medisupply-inventory-service
         run: |
-          echo "🚀 Deploying Inventory Service to ECS..."
+          echo "🚀 Starting Blue-Green deployment for Inventory Service..."
 
-          # Update ECS service to use new image
-          aws ecs update-service \
-            --cluster $ECS_CLUSTER \
-            --service $SERVICE_NAME \
-            --force-new-deployment
+          # Use the deployment script for proper blue-green deployment
+          chmod +x scripts/deploy-service.sh
+          ./scripts/deploy-service.sh inventory-service $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-          echo "✅ ECS service update initiated"
-
-          # Wait for deployment to stabilize
-          echo "⏳ Waiting for deployment to complete..."
-          aws ecs wait services-stable \
-            --cluster $ECS_CLUSTER \
-            --services $SERVICE_NAME
-
-          echo "🎉 Inventory Service deployment completed successfully!"
+          echo "✅ Inventory Service Blue-Green deployment initiated"
+          echo "🔄 Linear traffic shifting: 10% every minute over 10 minutes"
 
   # Build and deploy Prometheus
   deploy-prometheus:
@@ -217,30 +197,20 @@ jobs:
           echo "✅ Prometheus image pushed to ECR"
           echo "📦 Image URI: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
-      - name: Deploy to ECS
+      - name: Deploy to ECS via CodeDeploy Blue-Green
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: medisupply/prometheus
           IMAGE_TAG: ${{ github.sha }}
-          SERVICE_NAME: medisupply-prometheus
         run: |
-          echo "🚀 Deploying Prometheus to ECS..."
+          echo "🚀 Starting Blue-Green deployment for Prometheus..."
 
-          # Update ECS service to use new image
-          aws ecs update-service \
-            --cluster $ECS_CLUSTER \
-            --service $SERVICE_NAME \
-            --force-new-deployment
+          # Use the deployment script for proper blue-green deployment
+          chmod +x scripts/deploy-service.sh
+          ./scripts/deploy-service.sh prometheus $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-          echo "✅ ECS service update initiated"
-
-          # Wait for deployment to stabilize
-          echo "⏳ Waiting for deployment to complete..."
-          aws ecs wait services-stable \
-            --cluster $ECS_CLUSTER \
-            --services $SERVICE_NAME
-
-          echo "🎉 Prometheus deployment completed successfully!"
+          echo "✅ Prometheus Blue-Green deployment initiated"
+          echo "🔄 Linear traffic shifting: 10% every minute over 10 minutes"
 
   # Build and deploy Grafana
   deploy-grafana:
@@ -285,30 +255,20 @@ jobs:
           echo "✅ Grafana image pushed to ECR"
           echo "📦 Image URI: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
-      - name: Deploy to ECS
+      - name: Deploy to ECS via CodeDeploy Blue-Green
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: medisupply/grafana
           IMAGE_TAG: ${{ github.sha }}
-          SERVICE_NAME: medisupply-grafana
         run: |
-          echo "🚀 Deploying Grafana to ECS..."
+          echo "🚀 Starting Blue-Green deployment for Grafana..."
 
-          # Update ECS service to use new image
-          aws ecs update-service \
-            --cluster $ECS_CLUSTER \
-            --service $SERVICE_NAME \
-            --force-new-deployment
+          # Use the deployment script for proper blue-green deployment
+          chmod +x scripts/deploy-service.sh
+          ./scripts/deploy-service.sh grafana $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-          echo "✅ ECS service update initiated"
-
-          # Wait for deployment to stabilize
-          echo "⏳ Waiting for deployment to complete..."
-          aws ecs wait services-stable \
-            --cluster $ECS_CLUSTER \
-            --services $SERVICE_NAME
-
-          echo "🎉 Grafana deployment completed successfully!"
+          echo "✅ Grafana Blue-Green deployment initiated"
+          echo "🔄 Linear traffic shifting: 10% every minute over 10 minutes"
 
   # Deploy all services (manual trigger)
   deploy-all:
@@ -372,20 +332,26 @@ jobs:
           docker push $ECR_REGISTRY/medisupply/grafana:latest
           echo "✅ Grafana pushed"
 
-      - name: Deploy all services to ECS
+      - name: Deploy all services via CodeDeploy Blue-Green
         run: |
-          echo "🚀 Deploying all services to ECS..."
+          echo "🚀 Starting Blue-Green deployment for all services..."
 
-          # Deploy all services
-          aws ecs update-service --cluster $ECS_CLUSTER --service medisupply-orders-service --force-new-deployment
-          aws ecs update-service --cluster $ECS_CLUSTER --service medisupply-inventory-service --force-new-deployment
-          aws ecs update-service --cluster $ECS_CLUSTER --service medisupply-prometheus --force-new-deployment
-          aws ecs update-service --cluster $ECS_CLUSTER --service medisupply-grafana --force-new-deployment
+          # Make deployment script executable
+          chmod +x scripts/deploy-service.sh
 
-          echo "✅ All ECS services deployment initiated"
+          # Deploy all services with blue-green deployment
+          echo "📦 Deploying Orders Service..."
+          ./scripts/deploy-service.sh orders-service $ECR_REGISTRY/medisupply/orders-service:$IMAGE_TAG
 
-          # Wait for all deployments to stabilize
-          echo "⏳ Waiting for all deployments to complete..."
-          aws ecs wait services-stable --cluster $ECS_CLUSTER --services medisupply-orders-service medisupply-inventory-service medisupply-prometheus medisupply-grafana
+          echo "📦 Deploying Inventory Service..."
+          ./scripts/deploy-service.sh inventory-service $ECR_REGISTRY/medisupply/inventory-service:$IMAGE_TAG
 
-          echo "🎉 All services deployed successfully!"
+          echo "📦 Deploying Prometheus..."
+          ./scripts/deploy-service.sh prometheus $ECR_REGISTRY/medisupply/prometheus:$IMAGE_TAG
+
+          echo "📦 Deploying Grafana..."
+          ./scripts/deploy-service.sh grafana $ECR_REGISTRY/medisupply/grafana:$IMAGE_TAG
+
+          echo "✅ All services Blue-Green deployments initiated!"
+          echo "🔄 Each service will shift traffic linearly over 10 minutes (10% every minute)"
+          echo "⏱️  Total deployment time: ~10 minutes for complete traffic shift"

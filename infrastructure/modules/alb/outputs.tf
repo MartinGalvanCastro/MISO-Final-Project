@@ -37,3 +37,13 @@ output "target_group_arns" {
     aws_lb_target_group.grafana.arn
   ]
 }
+
+output "target_group_names" {
+  description = "Map of service names to target group names"
+  value = {
+    orders_service    = aws_lb_target_group.orders_service.name
+    inventory_service = aws_lb_target_group.inventory_service.name
+    prometheus        = aws_lb_target_group.prometheus.name
+    grafana          = aws_lb_target_group.grafana.name
+  }
+}
