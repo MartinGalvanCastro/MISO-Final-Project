@@ -4,6 +4,8 @@ networks:
 
 volumes:
   postgres_data:
+  prometheus_data:
+  grafana_data:
 
 services:
   # Database
@@ -103,3 +105,45 @@ services:
         echo 'Starting orders service...' &&
         uv run uvicorn main:app --host 0.0.0.0 --port 8001 --reload
       "
+
+  # Monitoring Services
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: medisupply-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - medisupply-network
+    depends_on:
+      - orders-service
+      - inventory-service
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: medisupply-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - medisupply-network
+    depends_on:
+      - prometheus

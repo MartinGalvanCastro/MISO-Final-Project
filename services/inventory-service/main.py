@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import logging
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from src.infrastructure.api.controllers.inventory_controller import router as inventory_router
 from src.infrastructure.api.controllers.health_controller import router as health_router
@@ -103,11 +104,16 @@ for exception_class, handler in EXCEPTION_HANDLERS.items():
 app.include_router(inventory_router)
 app.include_router(health_router)
 
+# Initialize Prometheus metrics
+instrumentator = Instrumentator()
+instrumentator.instrument(app).expose(app)
+
 
 @app.on_event("startup")
 async def startup():
     logger.info(f"Starting {settings.APP_NAME} on port {settings.PORT}")
     logger.info(f"Environment: {settings.ENVIRONMENT}")
+    logger.info("Prometheus metrics enabled at /metrics")
 
 
 @app.on_event("shutdown")
