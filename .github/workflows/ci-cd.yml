@@ -1,0 +1,376 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'services/**'
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  ECS_CLUSTER: medisupply-cluster
+
+jobs:
+  # Detect which services changed
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      orders-changed: ${{ steps.changes.outputs.orders }}
+      inventory-changed: ${{ steps.changes.outputs.inventory }}
+      prometheus-changed: ${{ steps.changes.outputs.prometheus }}
+      grafana-changed: ${{ steps.changes.outputs.grafana }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            orders:
+              - 'services/orders-service/**'
+            inventory:
+              - 'services/inventory-service/**'
+            prometheus:
+              - 'services/prometheus/**'
+            grafana:
+              - 'services/grafana/**'
+
+  # Build and deploy Orders Service
+  deploy-orders:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.orders-changed == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::501257812093:role/medisupply-github-actions-role
+          role-session-name: GitHubActions-OrdersService
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: medisupply/orders-service
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          cd services/orders-service
+
+          # Build image
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+          # Push images
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+          echo "✅ Orders service image pushed to ECR"
+          echo "📦 Image URI: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+      - name: Deploy to ECS
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: medisupply/orders-service
+          IMAGE_TAG: ${{ github.sha }}
+          SERVICE_NAME: medisupply-orders-service
+        run: |
+          echo "🚀 Deploying Orders Service to ECS..."
+
+          # Update ECS service to use new image
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service $SERVICE_NAME \
+            --force-new-deployment
+
+          echo "✅ ECS service update initiated"
+
+          # Wait for deployment to stabilize
+          echo "⏳ Waiting for deployment to complete..."
+          aws ecs wait services-stable \
+            --cluster $ECS_CLUSTER \
+            --services $SERVICE_NAME
+
+          echo "🎉 Orders Service deployment completed successfully!"
+
+  # Build and deploy Inventory Service
+  deploy-inventory:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.inventory-changed == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::501257812093:role/medisupply-github-actions-role
+          role-session-name: GitHubActions-InventoryService
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: medisupply/inventory-service
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          cd services/inventory-service
+
+          # Build image
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+          # Push images
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+          echo "✅ Inventory service image pushed to ECR"
+          echo "📦 Image URI: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+      - name: Deploy to ECS
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: medisupply/inventory-service
+          IMAGE_TAG: ${{ github.sha }}
+          SERVICE_NAME: medisupply-inventory-service
+        run: |
+          echo "🚀 Deploying Inventory Service to ECS..."
+
+          # Update ECS service to use new image
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service $SERVICE_NAME \
+            --force-new-deployment
+
+          echo "✅ ECS service update initiated"
+
+          # Wait for deployment to stabilize
+          echo "⏳ Waiting for deployment to complete..."
+          aws ecs wait services-stable \
+            --cluster $ECS_CLUSTER \
+            --services $SERVICE_NAME
+
+          echo "🎉 Inventory Service deployment completed successfully!"
+
+  # Build and deploy Prometheus
+  deploy-prometheus:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.prometheus-changed == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::501257812093:role/medisupply-github-actions-role
+          role-session-name: GitHubActions-Prometheus
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: medisupply/prometheus
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          cd services/prometheus
+
+          # Build image
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+          # Push images
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+          echo "✅ Prometheus image pushed to ECR"
+          echo "📦 Image URI: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+      - name: Deploy to ECS
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: medisupply/prometheus
+          IMAGE_TAG: ${{ github.sha }}
+          SERVICE_NAME: medisupply-prometheus
+        run: |
+          echo "🚀 Deploying Prometheus to ECS..."
+
+          # Update ECS service to use new image
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service $SERVICE_NAME \
+            --force-new-deployment
+
+          echo "✅ ECS service update initiated"
+
+          # Wait for deployment to stabilize
+          echo "⏳ Waiting for deployment to complete..."
+          aws ecs wait services-stable \
+            --cluster $ECS_CLUSTER \
+            --services $SERVICE_NAME
+
+          echo "🎉 Prometheus deployment completed successfully!"
+
+  # Build and deploy Grafana
+  deploy-grafana:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.grafana-changed == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::501257812093:role/medisupply-github-actions-role
+          role-session-name: GitHubActions-Grafana
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: medisupply/grafana
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          cd services/grafana
+
+          # Build image
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+          # Push images
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+          echo "✅ Grafana image pushed to ECR"
+          echo "📦 Image URI: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+      - name: Deploy to ECS
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: medisupply/grafana
+          IMAGE_TAG: ${{ github.sha }}
+          SERVICE_NAME: medisupply-grafana
+        run: |
+          echo "🚀 Deploying Grafana to ECS..."
+
+          # Update ECS service to use new image
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service $SERVICE_NAME \
+            --force-new-deployment
+
+          echo "✅ ECS service update initiated"
+
+          # Wait for deployment to stabilize
+          echo "⏳ Waiting for deployment to complete..."
+          aws ecs wait services-stable \
+            --cluster $ECS_CLUSTER \
+            --services $SERVICE_NAME
+
+          echo "🎉 Grafana deployment completed successfully!"
+
+  # Deploy all services (manual trigger)
+  deploy-all:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::501257812093:role/medisupply-github-actions-role
+          role-session-name: GitHubActions-DeployAll
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push all services
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          echo "🚀 Building and pushing all services..."
+
+          # Build Orders Service
+          cd services/orders-service
+          docker build -t $ECR_REGISTRY/medisupply/orders-service:$IMAGE_TAG .
+          docker tag $ECR_REGISTRY/medisupply/orders-service:$IMAGE_TAG $ECR_REGISTRY/medisupply/orders-service:latest
+          docker push $ECR_REGISTRY/medisupply/orders-service:$IMAGE_TAG
+          docker push $ECR_REGISTRY/medisupply/orders-service:latest
+          echo "✅ Orders service pushed"
+
+          # Build Inventory Service
+          cd ../inventory-service
+          docker build -t $ECR_REGISTRY/medisupply/inventory-service:$IMAGE_TAG .
+          docker tag $ECR_REGISTRY/medisupply/inventory-service:$IMAGE_TAG $ECR_REGISTRY/medisupply/inventory-service:latest
+          docker push $ECR_REGISTRY/medisupply/inventory-service:$IMAGE_TAG
+          docker push $ECR_REGISTRY/medisupply/inventory-service:latest
+          echo "✅ Inventory service pushed"
+
+          # Build Prometheus
+          cd ../prometheus
+          docker build -t $ECR_REGISTRY/medisupply/prometheus:$IMAGE_TAG .
+          docker tag $ECR_REGISTRY/medisupply/prometheus:$IMAGE_TAG $ECR_REGISTRY/medisupply/prometheus:latest
+          docker push $ECR_REGISTRY/medisupply/prometheus:$IMAGE_TAG
+          docker push $ECR_REGISTRY/medisupply/prometheus:latest
+          echo "✅ Prometheus pushed"
+
+          # Build Grafana
+          cd ../grafana
+          docker build -t $ECR_REGISTRY/medisupply/grafana:$IMAGE_TAG .
+          docker tag $ECR_REGISTRY/medisupply/grafana:$IMAGE_TAG $ECR_REGISTRY/medisupply/grafana:latest
+          docker push $ECR_REGISTRY/medisupply/grafana:$IMAGE_TAG
+          docker push $ECR_REGISTRY/medisupply/grafana:latest
+          echo "✅ Grafana pushed"
+
+      - name: Deploy all services to ECS
+        run: |
+          echo "🚀 Deploying all services to ECS..."
+
+          # Deploy all services
+          aws ecs update-service --cluster $ECS_CLUSTER --service medisupply-orders-service --force-new-deployment
+          aws ecs update-service --cluster $ECS_CLUSTER --service medisupply-inventory-service --force-new-deployment
+          aws ecs update-service --cluster $ECS_CLUSTER --service medisupply-prometheus --force-new-deployment
+          aws ecs update-service --cluster $ECS_CLUSTER --service medisupply-grafana --force-new-deployment
+
+          echo "✅ All ECS services deployment initiated"
+
+          # Wait for all deployments to stabilize
+          echo "⏳ Waiting for all deployments to complete..."
+          aws ecs wait services-stable --cluster $ECS_CLUSTER --services medisupply-orders-service medisupply-inventory-service medisupply-prometheus medisupply-grafana
+
+          echo "🎉 All services deployed successfully!"
