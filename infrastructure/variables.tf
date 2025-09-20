@@ -37,5 +37,5 @@ variable "public_subnet_cidrs" {
 variable "github_repository" {
   description = "GitHub repository in format 'owner/repo'"
   type        = string
-  default     = "*/*"
+  default     = "MartinGalvanCastro/MISO-Final-Project"
 }
