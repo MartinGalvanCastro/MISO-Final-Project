@@ -10,7 +10,9 @@ datasources:
   - name: CloudWatch
     type: cloudwatch
     access: proxy
+    uid: CloudWatch-UID
     editable: true
     jsonData:
-      authType: default
+      authType: ec2_iam_role
       defaultRegion: us-east-1
+      assumeRoleArn: ""
