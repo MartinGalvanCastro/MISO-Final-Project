@@ -61,6 +61,7 @@ fi
 # Update container image in task definition
 echo "🔄 Creating new task definition with updated image..."
 NEW_TASK_DEF=$(echo "$CURRENT_TASK_DEF" | jq --arg IMAGE "$IMAGE_URI" --arg CONTAINER "$CONTAINER_NAME" '
+    # Update the image for the specified container
     .containerDefinitions |= map(
         if .name == $CONTAINER then
             .image = $IMAGE
@@ -68,8 +69,28 @@ NEW_TASK_DEF=$(echo "$CURRENT_TASK_DEF" | jq --arg IMAGE "$IMAGE_URI" --arg CONT
             .
         end
     ) |
-    del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .placementConstraints, .compatibilities, .registeredAt, .registeredBy, .createdAt)
+    # Keep only the fields needed for task definition registration
+    {
+        family: .family,
+        taskRoleArn: .taskRoleArn,
+        executionRoleArn: .executionRoleArn,
+        networkMode: .networkMode,
+        containerDefinitions: .containerDefinitions,
+        volumes: .volumes,
+        requiresCompatibilities: .requiresCompatibilities,
+        cpu: .cpu,
+        memory: .memory,
+        tags: .tags
+    } |
+    # Remove null values
+    with_entries(select(.value != null))
 ')
+
+# Validate the JSON before attempting to register
+if ! echo "$NEW_TASK_DEF" | jq empty > /dev/null 2>&1; then
+    echo "❌ Generated task definition is not valid JSON"
+    exit 1
+fi
 
 # Register new task definition
 echo "📝 Registering new task definition..."
