@@ -1,9 +1,8 @@
 import logging
 
 import uvicorn
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 from prometheus_client import Gauge
 
@@ -19,22 +18,6 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
-
-# Logging middleware to capture all requests and their sources
-class LoggingMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        client_ip = request.client.host
-        method = request.method
-        path = request.url.path
-        user_agent = request.headers.get("user-agent", "unknown")
-
-        # Log all requests to help debug the handler="none" issue
-        logger.info(f"REQUEST: {method} {path} from {client_ip} - User-Agent: {user_agent}")
-
-        response = await call_next(request)
-
-        logger.info(f"RESPONSE: {method} {path} -> {response.status_code}")
-        return response
 
 # Create instance count metric
 service_instance_count = Gauge('service_instance_count', 'Number of service instances', ['service_name'])
@@ -109,9 +92,6 @@ This service implements hexagonal architecture (ports and adapters) with:
         },
     ],
 )
-
-# Add logging middleware first to capture all requests
-app.add_middleware(LoggingMiddleware)
 
 # Add CORS middleware
 app.add_middleware(

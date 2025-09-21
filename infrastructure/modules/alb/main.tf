@@ -191,10 +191,14 @@ resource "aws_lb_listener" "main" {
   port              = "80"
   protocol          = "HTTP"
 
-  # Default action - redirect to orders service
+  # Default action - return 404 for unknown paths (blocks bots/scanners)
   default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.orders_service.arn
+    type = "fixed-response"
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "Not Found"
+      status_code  = "404"
+    }
   }
 
   tags = {
