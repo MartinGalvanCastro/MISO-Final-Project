@@ -13,15 +13,6 @@ output "inventory_deployment_group_name" {
   value       = aws_codedeploy_deployment_group.inventory_service.deployment_group_name
 }
 
-output "prometheus_deployment_group_name" {
-  description = "Name of the prometheus deployment group"
-  value       = aws_codedeploy_deployment_group.prometheus.deployment_group_name
-}
-
-output "grafana_deployment_group_name" {
-  description = "Name of the grafana deployment group"
-  value       = aws_codedeploy_deployment_group.grafana.deployment_group_name
-}
 
 output "codedeploy_service_role_arn" {
   description = "ARN of the CodeDeploy service role"

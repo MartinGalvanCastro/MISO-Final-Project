@@ -154,7 +154,7 @@ jobs:
           echo "✅ Inventory Service Blue-Green deployment initiated"
           echo "🔄 Linear traffic shifting: 10% every minute over 10 minutes"
 
-  # Build and deploy Prometheus
+  # Deploy Prometheus (using official image)
   deploy-prometheus:
     runs-on: ubuntu-latest
     needs: detect-changes
@@ -174,45 +174,21 @@ jobs:
           role-session-name: GitHubActions-Prometheus
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build, tag, and push Docker image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: medisupply/prometheus
-          IMAGE_TAG: ${{ github.sha }}
+      - name: Deploy Prometheus with official image
         run: |
-          cd services/prometheus
+          echo "🚀 Deploying Prometheus using official Docker image with rolling update..."
 
-          # Build image
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          # Update ECS service with new task definition using official image
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service medisupply-prometheus \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
 
-          # Push images
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          echo "✅ Prometheus rolling update deployment initiated"
+          echo "📦 Using official image: prom/prometheus:latest"
 
-          echo "✅ Prometheus image pushed to ECR"
-          echo "📦 Image URI: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-
-      - name: Deploy to ECS via CodeDeploy Blue-Green
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: medisupply/prometheus
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          echo "🚀 Starting Blue-Green deployment for Prometheus..."
-
-          # Use the deployment script for proper blue-green deployment
-          chmod +x scripts/deploy-service.sh
-          ./scripts/deploy-service.sh prometheus $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-
-          echo "✅ Prometheus Blue-Green deployment initiated"
-          echo "🔄 Linear traffic shifting: 10% every minute over 10 minutes"
-
-  # Build and deploy Grafana
+  # Deploy Grafana (using official image)
   deploy-grafana:
     runs-on: ubuntu-latest
     needs: detect-changes
@@ -232,43 +208,19 @@ jobs:
           role-session-name: GitHubActions-Grafana
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build, tag, and push Docker image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: medisupply/grafana
-          IMAGE_TAG: ${{ github.sha }}
+      - name: Deploy Grafana with official image
         run: |
-          cd services/grafana
+          echo "🚀 Deploying Grafana using official Docker image with rolling update..."
 
-          # Build image
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          # Update ECS service with new task definition using official image
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service medisupply-grafana \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
 
-          # Push images
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-
-          echo "✅ Grafana image pushed to ECR"
-          echo "📦 Image URI: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-
-      - name: Deploy to ECS via CodeDeploy Blue-Green
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: medisupply/grafana
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          echo "🚀 Starting Blue-Green deployment for Grafana..."
-
-          # Use the deployment script for proper blue-green deployment
-          chmod +x scripts/deploy-service.sh
-          ./scripts/deploy-service.sh grafana $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-
-          echo "✅ Grafana Blue-Green deployment initiated"
-          echo "🔄 Linear traffic shifting: 10% every minute over 10 minutes"
+          echo "✅ Grafana rolling update deployment initiated"
+          echo "📦 Using official image: grafana/grafana:latest"
 
   # Deploy all services (manual trigger)
   deploy-all:
@@ -316,21 +268,7 @@ jobs:
           docker push $ECR_REGISTRY/medisupply/inventory-service:latest
           echo "✅ Inventory service pushed"
 
-          # Build Prometheus
-          cd ../prometheus
-          docker build -t $ECR_REGISTRY/medisupply/prometheus:$IMAGE_TAG .
-          docker tag $ECR_REGISTRY/medisupply/prometheus:$IMAGE_TAG $ECR_REGISTRY/medisupply/prometheus:latest
-          docker push $ECR_REGISTRY/medisupply/prometheus:$IMAGE_TAG
-          docker push $ECR_REGISTRY/medisupply/prometheus:latest
-          echo "✅ Prometheus pushed"
-
-          # Build Grafana
-          cd ../grafana
-          docker build -t $ECR_REGISTRY/medisupply/grafana:$IMAGE_TAG .
-          docker tag $ECR_REGISTRY/medisupply/grafana:$IMAGE_TAG $ECR_REGISTRY/medisupply/grafana:latest
-          docker push $ECR_REGISTRY/medisupply/grafana:$IMAGE_TAG
-          docker push $ECR_REGISTRY/medisupply/grafana:latest
-          echo "✅ Grafana pushed"
+          echo "✅ Only microservices (orders & inventory) are built - monitoring uses official images"
 
       - name: Deploy all services via CodeDeploy Blue-Green
         run: |
@@ -346,12 +284,20 @@ jobs:
           echo "📦 Deploying Inventory Service..."
           ./scripts/deploy-service.sh inventory-service $ECR_REGISTRY/medisupply/inventory-service:$IMAGE_TAG
 
-          echo "📦 Deploying Prometheus..."
-          ./scripts/deploy-service.sh prometheus $ECR_REGISTRY/medisupply/prometheus:$IMAGE_TAG
+          echo "📦 Deploying Prometheus with rolling update..."
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service medisupply-prometheus \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
 
-          echo "📦 Deploying Grafana..."
-          ./scripts/deploy-service.sh grafana $ECR_REGISTRY/medisupply/grafana:$IMAGE_TAG
+          echo "📦 Deploying Grafana with rolling update..."
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service medisupply-grafana \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
 
-          echo "✅ All services Blue-Green deployments initiated!"
-          echo "🔄 Each service will shift traffic linearly over 10 minutes (10% every minute)"
-          echo "⏱️  Total deployment time: ~10 minutes for complete traffic shift"
+          echo "✅ All services deployments initiated!"
+          echo "🔄 Microservices using Blue-Green deployment (10% every minute over 10 minutes)"
+          echo "📊 Monitoring services using rolling update deployment"

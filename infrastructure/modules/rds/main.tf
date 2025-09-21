@@ -35,6 +35,22 @@ resource "aws_secretsmanager_secret_version" "db_password" {
   })
 }
 
+# Store DATABASE_URL in AWS Secrets Manager for application use
+resource "aws_secretsmanager_secret" "database_url" {
+  name        = "${var.project_name}-database-url"
+  description = "Database connection URL for ${var.project_name}"
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+  }
+}
+
+resource "aws_secretsmanager_secret_version" "database_url" {
+  secret_id     = aws_secretsmanager_secret.database_url.id
+  secret_string = "postgresql+asyncpg://${var.db_username}:${urlencode(random_password.db_password.result)}@${aws_db_instance.main.endpoint}/${var.db_name}"
+}
+
 # RDS PostgreSQL Instance
 resource "aws_db_instance" "main" {
   identifier = "${var.project_name}-postgres"
@@ -58,7 +74,7 @@ resource "aws_db_instance" "main" {
   # Network configuration
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [var.security_group_id]
-  publicly_accessible    = false
+  publicly_accessible    = true
 
   # Availability and maintenance
   multi_az               = false  # Single-AZ for cost savings

@@ -50,6 +50,11 @@ output "db_secret_arn" {
   value       = module.rds.secret_arn
 }
 
+output "database_url_secret_arn" {
+  description = "ARN of the DATABASE_URL secret"
+  value       = module.rds.database_url_secret_arn
+}
+
 # SQS Outputs
 output "orders_queue_url" {
   description = "URL of the orders SQS queue"

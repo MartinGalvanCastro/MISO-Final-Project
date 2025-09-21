@@ -23,32 +23,38 @@ variable "inventory_service_name" {
   type        = string
 }
 
-variable "prometheus_service_name" {
-  description = "Name of the prometheus ECS service"
-  type        = string
-}
-
-variable "grafana_service_name" {
-  description = "Name of the grafana ECS service"
+variable "alb_listener_arn" {
+  description = "ARN of the ALB listener for traffic routing"
   type        = string
 }
 
 variable "orders_target_group_name" {
-  description = "Name of the orders target group"
+  description = "Name of the orders service blue target group"
+  type        = string
+}
+
+variable "orders_target_group_name_green" {
+  description = "Name of the orders service green target group"
   type        = string
 }
 
 variable "inventory_target_group_name" {
-  description = "Name of the inventory target group"
+  description = "Name of the inventory service blue target group"
   type        = string
 }
 
-variable "prometheus_target_group_name" {
-  description = "Name of the prometheus target group"
+variable "inventory_target_group_name_green" {
+  description = "Name of the inventory service green target group"
   type        = string
 }
 
-variable "grafana_target_group_name" {
-  description = "Name of the grafana target group"
+variable "orders_target_group_arn_suffix" {
+  description = "ARN suffix of the orders service target group for CloudWatch alarms"
   type        = string
 }
+
+variable "inventory_target_group_arn_suffix" {
+  description = "ARN suffix of the inventory service target group for CloudWatch alarms"
+  type        = string
+}
+

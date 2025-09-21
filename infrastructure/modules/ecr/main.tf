@@ -30,6 +30,22 @@ resource "aws_ecr_repository" "inventory_service" {
   }
 }
 
+# ECR Repository for Grafana
+resource "aws_ecr_repository" "grafana" {
+  name                 = "${var.project_name}/grafana"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = false  # Disabled to stay in free tier
+  }
+
+  tags = {
+    Name        = "${var.project_name}-grafana-ecr"
+    Service     = "grafana"
+    Description = "Container repository for Grafana dashboards"
+  }
+}
+
 # ECR Repository for Prometheus
 resource "aws_ecr_repository" "prometheus" {
   name                 = "${var.project_name}/prometheus"
@@ -46,21 +62,6 @@ resource "aws_ecr_repository" "prometheus" {
   }
 }
 
-# ECR Repository for Grafana
-resource "aws_ecr_repository" "grafana" {
-  name                 = "${var.project_name}/grafana"
-  image_tag_mutability = "MUTABLE"
-
-  image_scanning_configuration {
-    scan_on_push = false  # Disabled to stay in free tier
-  }
-
-  tags = {
-    Name        = "${var.project_name}-grafana-ecr"
-    Service     = "grafana"
-    Description = "Container repository for Grafana dashboards"
-  }
-}
 
 # Lifecycle Policy for Orders Service
 resource "aws_ecr_lifecycle_policy" "orders_service" {
@@ -134,6 +135,42 @@ resource "aws_ecr_lifecycle_policy" "inventory_service" {
   })
 }
 
+# Lifecycle Policy for Grafana
+resource "aws_ecr_lifecycle_policy" "grafana" {
+  repository = aws_ecr_repository.grafana.name
+
+  policy = jsonencode({
+    rules = [
+      {
+        rulePriority = 1
+        description  = "Keep last 5 images"
+        selection = {
+          tagStatus     = "tagged"
+          tagPrefixList = ["v"]
+          countType     = "imageCountMoreThan"
+          countNumber   = 5
+        }
+        action = {
+          type = "expire"
+        }
+      },
+      {
+        rulePriority = 2
+        description  = "Delete untagged images older than 1 day"
+        selection = {
+          tagStatus   = "untagged"
+          countType   = "sinceImagePushed"
+          countUnit   = "days"
+          countNumber = 1
+        }
+        action = {
+          type = "expire"
+        }
+      }
+    ]
+  })
+}
+
 # Lifecycle Policy for Prometheus
 resource "aws_ecr_lifecycle_policy" "prometheus" {
   repository = aws_ecr_repository.prometheus.name
@@ -170,41 +207,6 @@ resource "aws_ecr_lifecycle_policy" "prometheus" {
   })
 }
 
-# Lifecycle Policy for Grafana
-resource "aws_ecr_lifecycle_policy" "grafana" {
-  repository = aws_ecr_repository.grafana.name
-
-  policy = jsonencode({
-    rules = [
-      {
-        rulePriority = 1
-        description  = "Keep last 5 images"
-        selection = {
-          tagStatus     = "tagged"
-          tagPrefixList = ["v"]
-          countType     = "imageCountMoreThan"
-          countNumber   = 5
-        }
-        action = {
-          type = "expire"
-        }
-      },
-      {
-        rulePriority = 2
-        description  = "Delete untagged images older than 1 day"
-        selection = {
-          tagStatus   = "untagged"
-          countType   = "sinceImagePushed"
-          countUnit   = "days"
-          countNumber = 1
-        }
-        action = {
-          type = "expire"
-        }
-      }
-    ]
-  })
-}
 
 # IAM Role for GitHub Actions
 resource "aws_iam_role" "github_actions" {
@@ -294,6 +296,54 @@ resource "aws_iam_policy" "github_actions_ecs" {
   })
 }
 
+# IAM Policy for CodeDeploy Access (for Blue/Green deployment)
+resource "aws_iam_policy" "github_actions_codedeploy" {
+  name        = "${var.project_name}-github-actions-codedeploy-policy"
+  description = "IAM policy for GitHub Actions CodeDeploy Blue/Green deployment"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "codedeploy:CreateDeployment",
+          "codedeploy:GetApplication",
+          "codedeploy:GetApplicationRevision",
+          "codedeploy:GetDeployment",
+          "codedeploy:GetDeploymentConfig",
+          "codedeploy:GetDeploymentGroup",
+          "codedeploy:RegisterApplicationRevision",
+          "codedeploy:StopDeployment"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ecs:DescribeServices",
+          "ecs:CreateTaskSet",
+          "ecs:UpdateTaskSet",
+          "ecs:DescribeTaskSets",
+          "ecs:DeleteTaskSet"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "elasticloadbalancing:DescribeTargetGroups",
+          "elasticloadbalancing:DescribeListeners",
+          "elasticloadbalancing:ModifyListener",
+          "elasticloadbalancing:DescribeRules",
+          "elasticloadbalancing:ModifyRule"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 # Attach ECR Policy to GitHub Actions Role
 resource "aws_iam_role_policy_attachment" "github_actions_ecr" {
   role       = aws_iam_role.github_actions.name
@@ -304,6 +354,12 @@ resource "aws_iam_role_policy_attachment" "github_actions_ecr" {
 resource "aws_iam_role_policy_attachment" "github_actions_ecs" {
   role       = aws_iam_role.github_actions.name
   policy_arn = aws_iam_policy.github_actions_ecs.arn
+}
+
+# Attach CodeDeploy Policy to GitHub Actions Role
+resource "aws_iam_role_policy_attachment" "github_actions_codedeploy" {
+  role       = aws_iam_role.github_actions.name
+  policy_arn = aws_iam_policy.github_actions_codedeploy.arn
 }
 
 # Data source for current AWS account

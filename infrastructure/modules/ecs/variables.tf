@@ -28,6 +28,11 @@ variable "db_secret_arn" {
   type        = string
 }
 
+variable "database_url_secret_arn" {
+  description = "ARN of the DATABASE_URL secret in Secrets Manager"
+  type        = string
+}
+
 variable "sqs_access_policy_arn" {
   description = "ARN of the SQS access policy"
   type        = string
@@ -50,8 +55,8 @@ variable "ecr_repositories" {
   type = object({
     orders_service    = string
     inventory_service = string
-    prometheus        = string
     grafana          = string
+    prometheus       = string
   })
 }
 
@@ -103,4 +108,20 @@ variable "grafana_target_group_arn" {
 variable "alb_listener_arn" {
   description = "ARN of the ALB listener"
   type        = string
+}
+
+variable "orders_queue_url" {
+  description = "URL of the orders SQS queue"
+  type        = string
+}
+
+variable "orders_queue_name" {
+  description = "Name of the orders SQS queue"
+  type        = string
+}
+
+variable "database_url_connection_string" {
+  description = "Complete DATABASE_URL connection string"
+  type        = string
+  sensitive   = true
 }

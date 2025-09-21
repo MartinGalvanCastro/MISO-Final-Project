@@ -47,3 +47,21 @@ output "target_group_names" {
     grafana          = aws_lb_target_group.grafana.name
   }
 }
+
+output "target_group_names_green" {
+  description = "Map of service names to green target group names for Blue-Green deployment"
+  value = {
+    orders_service    = aws_lb_target_group.orders_service_green.name
+    inventory_service = aws_lb_target_group.inventory_service_green.name
+  }
+}
+
+output "target_group_arn_suffixes" {
+  description = "Map of service names to target group ARN suffixes for CloudWatch alarms"
+  value = {
+    orders_service    = aws_lb_target_group.orders_service.arn_suffix
+    inventory_service = aws_lb_target_group.inventory_service.arn_suffix
+    prometheus        = aws_lb_target_group.prometheus.arn_suffix
+    grafana          = aws_lb_target_group.grafana.arn_suffix
+  }
+}

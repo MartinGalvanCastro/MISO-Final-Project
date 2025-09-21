@@ -45,8 +45,16 @@ module "ecs" {
   vpc_id               = module.vpc.vpc_id
   subnet_ids           = module.vpc.public_subnet_ids
   security_group_ids   = [module.vpc.ecs_tasks_security_group_id]
-  db_secret_arn        = module.rds.secret_arn
-  sqs_access_policy_arn = module.sqs.sqs_access_policy_arn
+  db_secret_arn           = module.rds.secret_arn
+  database_url_secret_arn = module.rds.database_url_secret_arn
+  sqs_access_policy_arn   = module.sqs.sqs_access_policy_arn
+
+  # SQS Queue Configuration
+  orders_queue_url = module.sqs.orders_queue_url
+  orders_queue_name = module.sqs.orders_queue_name
+
+  # Database Connection String
+  database_url_connection_string = module.rds.db_connection_string
 
   # ECR repositories
   ecr_repositories = module.ecr.ecr_repositories
@@ -84,12 +92,17 @@ module "codedeploy" {
 
   orders_service_name     = module.ecs.orders_service_name
   inventory_service_name  = module.ecs.inventory_service_name
-  prometheus_service_name = module.ecs.prometheus_service_name
-  grafana_service_name    = module.ecs.grafana_service_name
 
-  # Target group names
-  orders_target_group_name     = module.alb.target_group_names.orders_service
-  inventory_target_group_name  = module.alb.target_group_names.inventory_service
-  prometheus_target_group_name = module.alb.target_group_names.prometheus
-  grafana_target_group_name    = module.alb.target_group_names.grafana
+  # ALB configuration for Blue-Green deployment
+  alb_listener_arn = module.alb.listener_arn
+
+  # Target group names for Blue-Green deployment
+  orders_target_group_name         = module.alb.target_group_names.orders_service
+  orders_target_group_name_green   = module.alb.target_group_names_green.orders_service
+  inventory_target_group_name      = module.alb.target_group_names.inventory_service
+  inventory_target_group_name_green = module.alb.target_group_names_green.inventory_service
+
+  # Target group ARN suffixes for CloudWatch alarms
+  orders_target_group_arn_suffix     = module.alb.target_group_arn_suffixes.orders_service
+  inventory_target_group_arn_suffix  = module.alb.target_group_arn_suffixes.inventory_service
 }

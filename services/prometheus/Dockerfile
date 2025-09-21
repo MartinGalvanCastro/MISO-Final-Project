@@ -1,7 +1,7 @@
 FROM prom/prometheus:v2.45.0
 
-# Copy the prometheus configuration
-COPY prometheus.yml /etc/prometheus/prometheus.yml
+# Copy the production prometheus configuration
+COPY prometheus-prod.yml /etc/prometheus/prometheus.yml
 
 # Expose the default Prometheus port
 EXPOSE 9090
@@ -12,4 +12,6 @@ CMD ["--config.file=/etc/prometheus/prometheus.yml", \
      "--web.console.libraries=/etc/prometheus/console_libraries", \
      "--web.console.templates=/etc/prometheus/consoles", \
      "--storage.tsdb.retention.time=15d", \
-     "--web.enable-lifecycle"]
+     "--web.enable-lifecycle", \
+     "--web.route-prefix=/prometheus", \
+     "--web.external-url=http://localhost:9090/prometheus"]

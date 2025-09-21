@@ -35,18 +35,6 @@ case $SERVICE_NAME in
         CONTAINER_NAME="inventory-service"
         CONTAINER_PORT=8002
         ;;
-    "prometheus")
-        TASK_FAMILY="medisupply-prometheus"
-        DEPLOYMENT_GROUP="medisupply-prometheus-dg"
-        CONTAINER_NAME="prometheus"
-        CONTAINER_PORT=9090
-        ;;
-    "grafana")
-        TASK_FAMILY="medisupply-grafana"
-        DEPLOYMENT_GROUP="medisupply-grafana-dg"
-        CONTAINER_NAME="grafana"
-        CONTAINER_PORT=3000
-        ;;
     *)
         echo "❌ Unknown service: $SERVICE_NAME"
         exit 1

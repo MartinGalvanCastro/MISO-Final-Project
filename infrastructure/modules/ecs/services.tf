@@ -34,19 +34,40 @@ resource "aws_ecs_task_definition" "orders_service" {
           value = "8001"
         },
         {
+          name  = "DEBUG"
+          value = "false"
+        },
+        {
           name  = "ENVIRONMENT"
           value = var.environment
         },
         {
+          name  = "LOG_LEVEL"
+          value = "INFO"
+        },
+        {
           name  = "INVENTORY_SERVICE_URL"
           value = "http://inventory-service.${var.service_discovery_namespace_name}:8002"
-        }
-      ]
-
-      secrets = [
+        },
         {
-          name      = "DATABASE_URL"
-          valueFrom = var.db_secret_arn
+          name  = "AWS_REGION"
+          value = var.aws_region
+        },
+        {
+          name  = "SQS_QUEUE_URL"
+          value = var.orders_queue_url
+        },
+        {
+          name  = "SQS_QUEUE_NAME"
+          value = var.orders_queue_name
+        },
+        {
+          name  = "HEALTH_CHECK_PATH"
+          value = "/health/"
+        },
+        {
+          name  = "DATABASE_URL"
+          value = var.database_url_connection_string
         }
       ]
 
@@ -60,7 +81,7 @@ resource "aws_ecs_task_definition" "orders_service" {
       }
 
       healthCheck = {
-        command     = ["CMD-SHELL", "curl -f http://localhost:8001/health || exit 1"]
+        command     = ["CMD-SHELL", "curl -f http://localhost:8001/health/ || exit 1"]
         interval    = 30
         timeout     = 5
         retries     = 3
@@ -204,15 +225,36 @@ resource "aws_ecs_task_definition" "inventory_service" {
           value = "8002"
         },
         {
+          name  = "DEBUG"
+          value = "false"
+        },
+        {
           name  = "ENVIRONMENT"
           value = var.environment
-        }
-      ]
-
-      secrets = [
+        },
         {
-          name      = "DATABASE_URL"
-          valueFrom = var.db_secret_arn
+          name  = "LOG_LEVEL"
+          value = "INFO"
+        },
+        {
+          name  = "HEALTH_CHECK_PATH"
+          value = "/health/"
+        },
+        {
+          name  = "DEFAULT_STOCK_QUANTITY"
+          value = "100"
+        },
+        {
+          name  = "LOW_STOCK_THRESHOLD"
+          value = "10"
+        },
+        {
+          name  = "RESERVATION_TIMEOUT_MINUTES"
+          value = "15"
+        },
+        {
+          name  = "DATABASE_URL"
+          value = var.database_url_connection_string
         }
       ]
 
@@ -226,7 +268,7 @@ resource "aws_ecs_task_definition" "inventory_service" {
       }
 
       healthCheck = {
-        command     = ["CMD-SHELL", "curl -f http://localhost:8002/health || exit 1"]
+        command     = ["CMD-SHELL", "curl -f http://localhost:8002/health/ || exit 1"]
         interval    = 30
         timeout     = 5
         retries     = 3

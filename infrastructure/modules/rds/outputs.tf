@@ -36,6 +36,11 @@ output "secret_name" {
 
 output "db_connection_string" {
   description = "Database connection string"
-  value       = aws_db_instance.main.endpoint != null ? "postgresql://${aws_db_instance.main.username}:${random_password.db_password.result}@${aws_db_instance.main.endpoint}/${aws_db_instance.main.db_name}" : null
+  value       = aws_db_instance.main.endpoint != null ? "postgresql+asyncpg://${aws_db_instance.main.username}:${urlencode(random_password.db_password.result)}@${aws_db_instance.main.endpoint}/${aws_db_instance.main.db_name}" : null
   sensitive   = true
+}
+
+output "database_url_secret_arn" {
+  description = "ARN of the secret containing the DATABASE_URL"
+  value       = aws_secretsmanager_secret.database_url.arn
 }

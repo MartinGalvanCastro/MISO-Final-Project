@@ -28,7 +28,7 @@ resource "aws_lb_target_group" "orders_service" {
     healthy_threshold   = 2
     interval            = 30
     matcher             = "200"
-    path                = "/health"
+    path                = "/health/"
     port                = "traffic-port"
     protocol            = "HTTP"
     timeout             = 5
@@ -40,6 +40,35 @@ resource "aws_lb_target_group" "orders_service" {
     Project     = var.project_name
     Environment = var.environment
     Service     = "orders-service"
+  }
+}
+
+# Target Group for Orders Service (Green - for Blue-Green deployment)
+resource "aws_lb_target_group" "orders_service_green" {
+  name        = "${var.project_name}-orders-tg-green"
+  port        = 8001
+  protocol    = "HTTP"
+  vpc_id      = var.vpc_id
+  target_type = "ip"  # Required for Fargate
+
+  health_check {
+    enabled             = true
+    healthy_threshold   = 2
+    interval            = 30
+    matcher             = "200"
+    path                = "/health/"
+    port                = "traffic-port"
+    protocol            = "HTTP"
+    timeout             = 5
+    unhealthy_threshold = 3
+  }
+
+  tags = {
+    Name        = "${var.project_name}-orders-tg-green"
+    Project     = var.project_name
+    Environment = var.environment
+    Service     = "orders-service"
+    DeploymentColor = "green"
   }
 }
 
@@ -56,7 +85,7 @@ resource "aws_lb_target_group" "inventory_service" {
     healthy_threshold   = 2
     interval            = 30
     matcher             = "200"
-    path                = "/health"
+    path                = "/health/"
     port                = "traffic-port"
     protocol            = "HTTP"
     timeout             = 5
@@ -68,6 +97,35 @@ resource "aws_lb_target_group" "inventory_service" {
     Project     = var.project_name
     Environment = var.environment
     Service     = "inventory-service"
+  }
+}
+
+# Target Group for Inventory Service (Green - for Blue-Green deployment)
+resource "aws_lb_target_group" "inventory_service_green" {
+  name        = "${var.project_name}-inventory-tg-green"
+  port        = 8002
+  protocol    = "HTTP"
+  vpc_id      = var.vpc_id
+  target_type = "ip"  # Required for Fargate
+
+  health_check {
+    enabled             = true
+    healthy_threshold   = 2
+    interval            = 30
+    matcher             = "200"
+    path                = "/health/"
+    port                = "traffic-port"
+    protocol            = "HTTP"
+    timeout             = 5
+    unhealthy_threshold = 3
+  }
+
+  tags = {
+    Name        = "${var.project_name}-inventory-tg-green"
+    Project     = var.project_name
+    Environment = var.environment
+    Service     = "inventory-service"
+    DeploymentColor = "green"
   }
 }
 
@@ -84,7 +142,7 @@ resource "aws_lb_target_group" "prometheus" {
     healthy_threshold   = 2
     interval            = 30
     matcher             = "200"
-    path                = "/-/healthy"
+    path                = "/prometheus/-/healthy"
     port                = "traffic-port"
     protocol            = "HTTP"
     timeout             = 5
@@ -151,8 +209,17 @@ resource "aws_lb_listener_rule" "orders_service" {
   priority     = 100
 
   action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.orders_service.arn
+    type = "forward"
+    forward {
+      target_group {
+        arn    = aws_lb_target_group.orders_service.arn
+        weight = 100
+      }
+      target_group {
+        arn    = aws_lb_target_group.orders_service_green.arn
+        weight = 0
+      }
+    }
   }
 
   condition {
@@ -173,8 +240,17 @@ resource "aws_lb_listener_rule" "inventory_service" {
   priority     = 200
 
   action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.inventory_service.arn
+    type = "forward"
+    forward {
+      target_group {
+        arn    = aws_lb_target_group.inventory_service.arn
+        weight = 100
+      }
+      target_group {
+        arn    = aws_lb_target_group.inventory_service_green.arn
+        weight = 0
+      }
+    }
   }
 
   condition {

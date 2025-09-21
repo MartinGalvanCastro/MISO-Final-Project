@@ -117,7 +117,10 @@ resource "aws_iam_policy" "ecs_secrets_policy" {
         Action = [
           "secretsmanager:GetSecretValue"
         ]
-        Resource = var.db_secret_arn
+        Resource = [
+          var.db_secret_arn,
+          var.database_url_secret_arn
+        ]
       }
     ]
   })

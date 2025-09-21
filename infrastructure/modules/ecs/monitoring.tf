@@ -23,6 +23,7 @@ resource "aws_ecs_task_definition" "prometheus" {
         }
       ]
 
+
       environment = [
         {
           name  = "ORDERS_SERVICE_URL"
@@ -44,7 +45,7 @@ resource "aws_ecs_task_definition" "prometheus" {
       }
 
       healthCheck = {
-        command     = ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9090/-/healthy || exit 1"]
+        command     = ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9090/prometheus/-/healthy || exit 1"]
         interval    = 30
         timeout     = 5
         retries     = 3
@@ -91,7 +92,7 @@ resource "aws_ecs_service" "prometheus" {
   launch_type     = "FARGATE"
 
   deployment_controller {
-    type = "CODE_DEPLOY"
+    type = "ECS"
   }
 
   network_configuration {
@@ -223,7 +224,7 @@ resource "aws_ecs_service" "grafana" {
   launch_type     = "FARGATE"
 
   deployment_controller {
-    type = "CODE_DEPLOY"
+    type = "ECS"
   }
 
   network_configuration {

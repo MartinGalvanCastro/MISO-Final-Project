@@ -1,4 +1,4 @@
--- Mock data for inventory service
+-- Mock data for inventory service (20+ entries)
 INSERT INTO inventory (product_id, available_quantity, reserved_quantity, updated_at) VALUES
 ('prod-001', 50, 5, CURRENT_TIMESTAMP),
 ('prod-002', 25, 0, CURRENT_TIMESTAMP),
@@ -9,4 +9,28 @@ INSERT INTO inventory (product_id, available_quantity, reserved_quantity, update
 ('prod-007', 75, 0, CURRENT_TIMESTAMP),
 ('prod-008', 30, 5, CURRENT_TIMESTAMP),
 ('prod-009', 5, 1, CURRENT_TIMESTAMP),
-('prod-010', 150, 20, CURRENT_TIMESTAMP);
+('prod-010', 150, 20, CURRENT_TIMESTAMP),
+('prod-011', 85, 8, CURRENT_TIMESTAMP),
+('prod-012', 120, 12, CURRENT_TIMESTAMP),
+('prod-013', 40, 3, CURRENT_TIMESTAMP),
+('prod-014', 65, 7, CURRENT_TIMESTAMP),
+('prod-015', 180, 25, CURRENT_TIMESTAMP),
+('prod-016', 22, 1, CURRENT_TIMESTAMP),
+('prod-017', 95, 9, CURRENT_TIMESTAMP),
+('prod-018', 110, 15, CURRENT_TIMESTAMP),
+('prod-019', 70, 6, CURRENT_TIMESTAMP),
+('prod-020', 35, 3, CURRENT_TIMESTAMP),
+('prod-021', 160, 18, CURRENT_TIMESTAMP),
+('prod-022', 45, 4, CURRENT_TIMESTAMP),
+('prod-023', 12, 1, CURRENT_TIMESTAMP),
+('prod-024', 300, 35, CURRENT_TIMESTAMP),
+('prod-025', 18, 2, CURRENT_TIMESTAMP),
+('prod-026', 80, 8, CURRENT_TIMESTAMP),
+('prod-027', 140, 14, CURRENT_TIMESTAMP),
+('prod-028', 25, 2, CURRENT_TIMESTAMP),
+('prod-029', 90, 9, CURRENT_TIMESTAMP),
+('prod-030', 220, 22, CURRENT_TIMESTAMP),
+('prod-031', 15, 1, CURRENT_TIMESTAMP),
+('prod-032', 175, 17, CURRENT_TIMESTAMP),
+('prod-033', 55, 5, CURRENT_TIMESTAMP),
+('prod-034', 32, 3, CURRENT_TIMESTAMP);
