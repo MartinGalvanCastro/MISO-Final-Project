@@ -27,11 +27,11 @@ resource "aws_ecs_task_definition" "prometheus" {
       environment = [
         {
           name  = "ORDERS_SERVICE_URL"
-          value = "orders-service.${var.service_discovery_namespace_name}:8001"
+          value = "${var.alb_dns_name}/api/v1/orders"
         },
         {
           name  = "INVENTORY_SERVICE_URL"
-          value = "inventory-service.${var.service_discovery_namespace_name}:8002"
+          value = "${var.alb_dns_name}/api/v1/inventory"
         }
       ]
 
@@ -62,26 +62,6 @@ resource "aws_ecs_task_definition" "prometheus" {
   }
 }
 
-# Service Connect Service for Prometheus
-resource "aws_service_discovery_service" "prometheus" {
-  name = "prometheus"
-
-  dns_config {
-    namespace_id = aws_service_discovery_private_dns_namespace.main.id
-
-    dns_records {
-      ttl  = 60
-      type = "A"
-    }
-  }
-
-  tags = {
-    Name        = "${var.project_name}-prometheus-service-discovery"
-    Project     = var.project_name
-    Environment = var.environment
-    Service     = "prometheus"
-  }
-}
 
 # ECS Service for Prometheus
 resource "aws_ecs_service" "prometheus" {
@@ -107,9 +87,6 @@ resource "aws_ecs_service" "prometheus" {
     container_port   = 9090
   }
 
-  service_registries {
-    registry_arn = aws_service_discovery_service.prometheus.arn
-  }
 
   enable_execute_command = false  # Disable for cost savings
 
@@ -194,26 +171,6 @@ resource "aws_ecs_task_definition" "grafana" {
   }
 }
 
-# Service Connect Service for Grafana
-resource "aws_service_discovery_service" "grafana" {
-  name = "grafana"
-
-  dns_config {
-    namespace_id = aws_service_discovery_private_dns_namespace.main.id
-
-    dns_records {
-      ttl  = 60
-      type = "A"
-    }
-  }
-
-  tags = {
-    Name        = "${var.project_name}-grafana-service-discovery"
-    Project     = var.project_name
-    Environment = var.environment
-    Service     = "grafana"
-  }
-}
 
 # ECS Service for Grafana
 resource "aws_ecs_service" "grafana" {
@@ -239,9 +196,6 @@ resource "aws_ecs_service" "grafana" {
     container_port   = 3000
   }
 
-  service_registries {
-    registry_arn = aws_service_discovery_service.grafana.arn
-  }
 
   enable_execute_command = false  # Disable for cost savings
 

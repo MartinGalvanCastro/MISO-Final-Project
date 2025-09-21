@@ -92,10 +92,6 @@ output "ecs_task_role_arn" {
   value       = module.ecs.ecs_task_role_arn
 }
 
-output "service_discovery_namespace_id" {
-  description = "ID of the service discovery namespace"
-  value       = module.ecs.service_discovery_namespace_id
-}
 
 # ALB Outputs
 output "alb_dns_name" {

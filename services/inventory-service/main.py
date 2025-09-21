@@ -3,8 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import logging
 from prometheus_fastapi_instrumentator import Instrumentator
-from prometheus_client import Gauge
-
 from src.infrastructure.api.controllers.inventory_controller import router as inventory_router
 from src.infrastructure.api.controllers.health_controller import router as health_router
 from src.infrastructure.config.settings import settings
@@ -17,10 +15,6 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
-
-# Create instance count metric
-service_instance_count = Gauge('service_instance_count', 'Number of service instances', ['service_name'])
-service_instance_count.labels(service_name='inventory-service').set(1)
 
 # Create FastAPI app
 app = FastAPI(

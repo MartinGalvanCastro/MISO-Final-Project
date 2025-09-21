@@ -14,17 +14,6 @@ resource "aws_ecs_cluster" "main" {
   }
 }
 
-# Service Connect Namespace
-resource "aws_service_discovery_private_dns_namespace" "main" {
-  name = "${var.project_name}.local"
-  vpc  = var.vpc_id
-
-  tags = {
-    Name        = "${var.project_name}-service-discovery"
-    Project     = var.project_name
-    Environment = var.environment
-  }
-}
 
 # CloudWatch Log Groups for each service
 resource "aws_cloudwatch_log_group" "orders_service" {
@@ -164,4 +153,43 @@ resource "aws_iam_role" "ecs_task_role" {
 resource "aws_iam_role_policy_attachment" "ecs_task_sqs_policy" {
   role       = aws_iam_role.ecs_task_role.name
   policy_arn = var.sqs_access_policy_arn
+}
+
+# CloudWatch policy for Grafana
+resource "aws_iam_policy" "ecs_cloudwatch_policy" {
+  name        = "${var.project_name}-ecs-cloudwatch-policy"
+  description = "Policy for ECS tasks to access CloudWatch metrics"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "cloudwatch:GetMetricStatistics",
+          "cloudwatch:GetMetricData",
+          "cloudwatch:ListMetrics",
+          "ec2:DescribeRegions",
+          "ecs:DescribeClusters",
+          "ecs:DescribeServices",
+          "ecs:DescribeTasks",
+          "ecs:ListClusters",
+          "ecs:ListServices",
+          "ecs:ListTasks"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+  }
+}
+
+# Attach CloudWatch policy to task role
+resource "aws_iam_role_policy_attachment" "ecs_task_cloudwatch_policy" {
+  role       = aws_iam_role.ecs_task_role.name
+  policy_arn = aws_iam_policy.ecs_cloudwatch_policy.arn
 }

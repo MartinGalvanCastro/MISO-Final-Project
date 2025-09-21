@@ -7,3 +7,10 @@ datasources:
     url: http://medisupply-alb-1440734058.us-east-1.elb.amazonaws.com/prometheus
     isDefault: true
     editable: true
+  - name: CloudWatch
+    type: cloudwatch
+    access: proxy
+    editable: true
+    jsonData:
+      authType: default
+      defaultRegion: us-east-1

@@ -98,26 +98,6 @@ resource "aws_ecs_task_definition" "orders_service" {
   }
 }
 
-# Service Connect Service for Orders
-resource "aws_service_discovery_service" "orders_service" {
-  name = "orders-service"
-
-  dns_config {
-    namespace_id = aws_service_discovery_private_dns_namespace.main.id
-
-    dns_records {
-      ttl  = 60
-      type = "A"
-    }
-  }
-
-  tags = {
-    Name        = "${var.project_name}-orders-service-discovery"
-    Project     = var.project_name
-    Environment = var.environment
-    Service     = "orders-service"
-  }
-}
 
 # ECS Service for Orders
 resource "aws_ecs_service" "orders_service" {
@@ -143,9 +123,6 @@ resource "aws_ecs_service" "orders_service" {
     container_port   = 8001
   }
 
-  service_registries {
-    registry_arn = aws_service_discovery_service.orders_service.arn
-  }
 
   enable_execute_command = false  # Disable for cost savings
 
@@ -285,26 +262,6 @@ resource "aws_ecs_task_definition" "inventory_service" {
   }
 }
 
-# Service Connect Service for Inventory
-resource "aws_service_discovery_service" "inventory_service" {
-  name = "inventory-service"
-
-  dns_config {
-    namespace_id = aws_service_discovery_private_dns_namespace.main.id
-
-    dns_records {
-      ttl  = 60
-      type = "A"
-    }
-  }
-
-  tags = {
-    Name        = "${var.project_name}-inventory-service-discovery"
-    Project     = var.project_name
-    Environment = var.environment
-    Service     = "inventory-service"
-  }
-}
 
 # ECS Service for Inventory
 resource "aws_ecs_service" "inventory_service" {
@@ -330,9 +287,6 @@ resource "aws_ecs_service" "inventory_service" {
     container_port   = 8002
   }
 
-  service_registries {
-    registry_arn = aws_service_discovery_service.inventory_service.arn
-  }
 
   enable_execute_command = false  # Disable for cost savings
 
