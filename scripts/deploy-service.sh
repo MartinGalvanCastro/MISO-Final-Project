@@ -53,9 +53,14 @@ CURRENT_TASK_DEF=$(aws ecs describe-task-definition \
     --query 'taskDefinition' \
     --region $AWS_REGION)
 
+if [ $? -ne 0 ]; then
+    echo "❌ Failed to get current task definition for $TASK_FAMILY"
+    exit 1
+fi
+
 # Update container image in task definition
 echo "🔄 Creating new task definition with updated image..."
-NEW_TASK_DEF=$(echo $CURRENT_TASK_DEF | jq --arg IMAGE "$IMAGE_URI" --arg CONTAINER "$CONTAINER_NAME" '
+NEW_TASK_DEF=$(echo "$CURRENT_TASK_DEF" | jq --arg IMAGE "$IMAGE_URI" --arg CONTAINER "$CONTAINER_NAME" '
     .containerDefinitions |= map(
         if .name == $CONTAINER then
             .image = $IMAGE
@@ -63,16 +68,22 @@ NEW_TASK_DEF=$(echo $CURRENT_TASK_DEF | jq --arg IMAGE "$IMAGE_URI" --arg CONTAI
             .
         end
     ) |
-    del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .placementConstraints, .compatibilities, .registeredAt, .registeredBy)
+    del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .placementConstraints, .compatibilities, .registeredAt, .registeredBy, .createdAt)
 ')
 
 # Register new task definition
 echo "📝 Registering new task definition..."
-NEW_TASK_DEF_ARN=$(echo $NEW_TASK_DEF | aws ecs register-task-definition \
+NEW_TASK_DEF_ARN=$(echo "$NEW_TASK_DEF" | aws ecs register-task-definition \
     --region $AWS_REGION \
     --cli-input-json file:///dev/stdin \
     --query 'taskDefinition.taskDefinitionArn' \
     --output text)
+
+if [ $? -ne 0 ] || [ -z "$NEW_TASK_DEF_ARN" ]; then
+    echo "❌ Failed to register new task definition"
+    echo "Check CloudWatch logs or AWS console for details"
+    exit 1
+fi
 
 echo "✅ New task definition registered: $NEW_TASK_DEF_ARN"
 
@@ -106,6 +117,12 @@ DEPLOYMENT_ID=$(aws deploy create-deployment \
     --region $AWS_REGION \
     --query 'deploymentId' \
     --output text)
+
+if [ $? -ne 0 ] || [ -z "$DEPLOYMENT_ID" ]; then
+    echo "❌ Failed to create CodeDeploy deployment"
+    echo "Check AWS console for deployment details"
+    exit 1
+fi
 
 echo "✅ CodeDeploy deployment started!"
 echo "📊 Deployment ID: $DEPLOYMENT_ID"
