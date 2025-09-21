@@ -395,7 +395,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"orders-service\"}[5m])) by (le)) * 1000",
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"orders-service\",handler!~\"/api/v1/.*/health.*|/api/v1/.*/metrics\"}[5m])) by (le)) * 1000",
           "hide": false,
           "legendFormat": "Orders P95",
           "range": true,
@@ -407,7 +407,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job=\"orders-service\"}[5m])) by (le)) * 1000",
+          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job=\"orders-service\",handler!~\"/api/v1/.*/health.*|/api/v1/.*/metrics\"}[5m])) by (le)) * 1000",
           "hide": false,
           "legendFormat": "Orders P99",
           "range": true,
@@ -419,7 +419,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"inventory-service\"}[5m])) by (le)) * 1000",
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"inventory-service\",handler!~\"/api/v1/.*/health.*|/api/v1/.*/metrics\"}[5m])) by (le)) * 1000",
           "hide": false,
           "legendFormat": "Inventory P95",
           "range": true,
@@ -431,7 +431,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job=\"inventory-service\"}[5m])) by (le)) * 1000",
+          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job=\"inventory-service\",handler!~\"/api/v1/.*/health.*|/api/v1/.*/metrics\"}[5m])) by (le)) * 1000",
           "hide": false,
           "legendFormat": "Inventory P99",
           "range": true,
