@@ -4,6 +4,6 @@ datasources:
   - name: Prometheus
     type: prometheus
     access: proxy
-    url: http://prometheus.medisupply.local:9090
+    url: http://medisupply-alb-1440734058.us-east-1.elb.amazonaws.com/prometheus
     isDefault: true
     editable: true
