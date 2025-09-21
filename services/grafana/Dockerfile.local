@@ -1,0 +1,30 @@
+FROM grafana/grafana:10.2.0
+
+# Set environment variables for local development
+ENV GF_SECURITY_ADMIN_PASSWORD=admin
+ENV GF_USERS_ALLOW_SIGN_UP=false
+ENV GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+
+# Switch to root to copy files
+USER root
+
+# Copy dashboard provisioning configuration only
+COPY provisioning/dashboards /etc/grafana/provisioning/dashboards
+
+# Copy ONLY the LOCAL datasource configuration (points to prometheus:9090)
+COPY provisioning/datasources/prometheus.yml /etc/grafana/provisioning/datasources/prometheus.yml
+
+# Copy dashboards to a temporary location first
+COPY dashboards /tmp/dashboards
+
+# Create the dashboards directory and copy files with correct permissions
+RUN mkdir -p /var/lib/grafana/dashboards && \
+    cp -r /tmp/dashboards/* /var/lib/grafana/dashboards/ && \
+    chown -R 472:472 /var/lib/grafana/dashboards && \
+    rm -rf /tmp/dashboards
+
+# Expose Grafana port
+EXPOSE 3000
+
+# Switch back to grafana user
+USER 472

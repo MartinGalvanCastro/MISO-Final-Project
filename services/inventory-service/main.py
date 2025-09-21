@@ -102,9 +102,11 @@ app.add_middleware(
 for exception_class, handler in EXCEPTION_HANDLERS.items():
     app.add_exception_handler(exception_class, handler)
 
-# Initialize Prometheus metrics first with exclusions for health and metrics endpoints
-instrumentator = Instrumentator()
-instrumentator.instrument(app, excluded_handlers=["/api/v1/inventory/health/", "/api/v1/inventory/health", "/api/v1/inventory/metrics"]).expose(app, endpoint="/api/v1/inventory/metrics")
+# Initialize Prometheus metrics first with path exclusions
+instrumentator = Instrumentator(
+    excluded_handlers=[".*/health.*", ".*/metrics.*"]
+)
+instrumentator.instrument(app).expose(app, endpoint="/api/v1/inventory/metrics")
 
 # Include routers - ORDER MATTERS! Health router must come before inventory router, and metrics must be registered before inventory router
 app.include_router(health_router)

@@ -481,7 +481,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "sum(rate(http_requests_total{job=\"orders-service\",status=~\"4..\"}[5m])) / sum(rate(http_requests_total{job=\"orders-service\"}[5m])) * 100",
+          "expr": "sum(rate(http_requests_total{job=\"orders-service\",status=\"4xx\"}[5m])) / sum(rate(http_requests_total{job=\"orders-service\"}[5m])) * 100",
           "hide": false,
           "legendFormat": "Orders Service 4xx Error Rate",
           "range": true,
@@ -493,7 +493,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "sum(rate(http_requests_total{job=\"orders-service\",status=~\"5..\"}[5m])) / sum(rate(http_requests_total{job=\"orders-service\"}[5m])) * 100",
+          "expr": "sum(rate(http_requests_total{job=\"orders-service\",status=\"5xx\"}[5m])) / sum(rate(http_requests_total{job=\"orders-service\"}[5m])) * 100",
           "hide": false,
           "legendFormat": "Orders Service 5xx Error Rate",
           "range": true,
@@ -505,7 +505,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "sum(rate(http_requests_total{job=\"inventory-service\",status=~\"4..\"}[5m])) / sum(rate(http_requests_total{job=\"inventory-service\"}[5m])) * 100",
+          "expr": "sum(rate(http_requests_total{job=\"inventory-service\",status=\"4xx\"}[5m])) / sum(rate(http_requests_total{job=\"inventory-service\"}[5m])) * 100",
           "hide": false,
           "legendFormat": "Inventory Service 4xx Error Rate",
           "range": true,
@@ -517,7 +517,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "sum(rate(http_requests_total{job=\"inventory-service\",status=~\"5..\"}[5m])) / sum(rate(http_requests_total{job=\"inventory-service\"}[5m])) * 100",
+          "expr": "sum(rate(http_requests_total{job=\"inventory-service\",status=\"5xx\"}[5m])) / sum(rate(http_requests_total{job=\"inventory-service\"}[5m])) * 100",
           "hide": false,
           "legendFormat": "Inventory Service 5xx Error Rate",
           "range": true,
