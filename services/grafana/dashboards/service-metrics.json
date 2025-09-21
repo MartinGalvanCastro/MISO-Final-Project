@@ -6,6 +6,80 @@
   "panels": [
     {
       "id": 1,
+      "title": "ECS Running Tasks by Service",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "CloudWatch-UID"
+          },
+          "refId": "A",
+          "region": "us-east-1",
+          "namespace": "ECS/ContainerInsights",
+          "metricName": "RunningTaskCount",
+          "dimensions": {
+            "ServiceName": "medisupply-orders-service",
+            "ClusterName": "medisupply-cluster"
+          },
+          "statistic": "Maximum",
+          "period": "300"
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "CloudWatch-UID"
+          },
+          "refId": "B",
+          "region": "us-east-1",
+          "namespace": "ECS/ContainerInsights",
+          "metricName": "RunningTaskCount",
+          "dimensions": {
+            "ServiceName": "medisupply-inventory-service",
+            "ClusterName": "medisupply-cluster"
+          },
+          "statistic": "Maximum",
+          "period": "300"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "RunningTaskCount"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Orders Service Tasks"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "textMode": "auto"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "id": 2,
       "title": "HTTP Request Rate by Service",
       "type": "timeseries",
       "targets": [
@@ -15,8 +89,8 @@
             "uid": "prometheus"
           },
           "refId": "A",
-          "expr": "sum(rate(http_requests_total{job=\"orders-service\"}[5m]))",
-          "legendFormat": "Orders Service"
+          "expr": "sum(rate(http_requests_total{job=\"orders-service\"}[5m])) by (handler, method)",
+          "legendFormat": "Orders: {{method}} {{handler}}"
         },
         {
           "datasource": {
@@ -24,8 +98,8 @@
             "uid": "prometheus"
           },
           "refId": "B",
-          "expr": "sum(rate(http_requests_total{job=\"inventory-service\"}[5m]))",
-          "legendFormat": "Inventory Service"
+          "expr": "sum(rate(http_requests_total{job=\"inventory-service\"}[5m])) by (handler, method)",
+          "legendFormat": "Inventory: {{method}} {{handler}}"
         }
       ],
       "fieldConfig": {
@@ -38,7 +112,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 0
+        "y": 8
       }
     },
     {
@@ -52,8 +126,8 @@
             "uid": "prometheus"
           },
           "refId": "A",
-          "expr": "100 * (sum(rate(http_requests_total{job=\"orders-service\", status=~\"4xx|5xx\"}[5m])) / sum(rate(http_requests_total{job=\"orders-service\"}[5m])))",
-          "legendFormat": "Orders Service Error %"
+          "expr": "100 * (sum(rate(http_requests_total{job=\"orders-service\", status=~\"4xx|5xx\"}[5m])) by (handler, method) / sum(rate(http_requests_total{job=\"orders-service\"}[5m])) by (handler, method))",
+          "legendFormat": "Orders Error %: {{method}} {{handler}}"
         },
         {
           "datasource": {
@@ -61,8 +135,8 @@
             "uid": "prometheus"
           },
           "refId": "B",
-          "expr": "100 * (sum(rate(http_requests_total{job=\"inventory-service\", status=~\"4xx|5xx\"}[5m])) / sum(rate(http_requests_total{job=\"inventory-service\"}[5m])))",
-          "legendFormat": "Inventory Service Error %"
+          "expr": "100 * (sum(rate(http_requests_total{job=\"inventory-service\", status=~\"4xx|5xx\"}[5m])) by (handler, method) / sum(rate(http_requests_total{job=\"inventory-service\"}[5m])) by (handler, method))",
+          "legendFormat": "Inventory Error %: {{method}} {{handler}}"
         }
       ],
       "fieldConfig": {
@@ -76,7 +150,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 0
+        "y": 8
       }
     },
     {
@@ -90,8 +164,8 @@
             "uid": "prometheus"
           },
           "refId": "A",
-          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"orders-service\"}[5m])) by (le))",
-          "legendFormat": "Orders Service P95"
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"orders-service\"}[5m])) by (handler, method, le))",
+          "legendFormat": "Orders P95: {{method}} {{handler}}"
         },
         {
           "datasource": {
@@ -99,8 +173,8 @@
             "uid": "prometheus"
           },
           "refId": "B",
-          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"inventory-service\"}[5m])) by (le))",
-          "legendFormat": "Inventory Service P95"
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"inventory-service\"}[5m])) by (handler, method, le))",
+          "legendFormat": "Inventory P95: {{method}} {{handler}}"
         }
       ],
       "fieldConfig": {
@@ -113,7 +187,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 8
+        "y": 16
       }
     },
     {
@@ -127,8 +201,8 @@
             "uid": "prometheus"
           },
           "refId": "A",
-          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job=\"orders-service\"}[5m])) by (le))",
-          "legendFormat": "Orders Service P99"
+          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job=\"orders-service\"}[5m])) by (handler, method, le))",
+          "legendFormat": "Orders P99: {{method}} {{handler}}"
         },
         {
           "datasource": {
@@ -136,8 +210,8 @@
             "uid": "prometheus"
           },
           "refId": "B",
-          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job=\"inventory-service\"}[5m])) by (le))",
-          "legendFormat": "Inventory Service P99"
+          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job=\"inventory-service\"}[5m])) by (handler, method, le))",
+          "legendFormat": "Inventory P99: {{method}} {{handler}}"
         }
       ],
       "fieldConfig": {
@@ -150,7 +224,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 8
+        "y": 16
       }
     }
   ],
