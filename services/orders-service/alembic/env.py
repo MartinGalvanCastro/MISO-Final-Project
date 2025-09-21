@@ -20,6 +20,12 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
+def include_object(object, name, type_, reflected, compare_to):
+    if type_ == "table":
+        return name in target_metadata.tables
+    return True
+
+
 def run_migrations_offline() -> None:
     url = settings.DATABASE_URL.replace("+asyncpg", "")
     context.configure(
@@ -27,6 +33,8 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        version_table="alembic_version_orders",
+        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -45,8 +53,10 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, 
-            target_metadata=target_metadata
+            connection=connection,
+            target_metadata=target_metadata,
+            version_table="alembic_version_orders",
+            include_object=include_object,
         )
 
         with context.begin_transaction():

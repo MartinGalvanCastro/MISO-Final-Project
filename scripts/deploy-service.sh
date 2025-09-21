@@ -46,7 +46,7 @@ echo "   Task Family: $TASK_FAMILY"
 echo "   Deployment Group: $DEPLOYMENT_GROUP"
 echo "   Container: $CONTAINER_NAME:$CONTAINER_PORT"
 
-# Get current task definition
+# Get current task definition to copy its configuration
 echo "🔍 Getting current task definition..."
 CURRENT_TASK_DEF=$(aws ecs describe-task-definition \
     --task-definition $TASK_FAMILY \
@@ -58,51 +58,27 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Update container image in task definition
-echo "🔄 Creating new task definition with updated image..."
-NEW_TASK_DEF=$(echo "$CURRENT_TASK_DEF" | jq --arg IMAGE "$IMAGE_URI" --arg CONTAINER "$CONTAINER_NAME" '
-    # Update the image for the specified container
-    .containerDefinitions |= map(
-        if .name == $CONTAINER then
-            .image = $IMAGE
-        else
-            .
-        end
-    ) |
-    # Keep only the fields needed for task definition registration
-    {
-        family: .family,
-        taskRoleArn: .taskRoleArn,
-        executionRoleArn: .executionRoleArn,
-        networkMode: .networkMode,
-        containerDefinitions: .containerDefinitions,
-        volumes: .volumes,
-        requiresCompatibilities: .requiresCompatibilities,
-        cpu: .cpu,
-        memory: .memory,
-        tags: .tags
-    } |
-    # Remove null values
-    with_entries(select(.value != null))
-')
-
-# Validate the JSON before attempting to register
-if ! echo "$NEW_TASK_DEF" | jq empty > /dev/null 2>&1; then
-    echo "❌ Generated task definition is not valid JSON"
-    exit 1
-fi
-
-# Register new task definition
-echo "📝 Registering new task definition..."
-NEW_TASK_DEF_ARN=$(echo "$NEW_TASK_DEF" | aws ecs register-task-definition \
+# Since we use :latest tags in Terraform, we just need to create a new revision
+# with the same configuration to force ECS to pull the updated :latest image
+echo "🔄 Creating new task definition revision (same config, forces :latest pull)..."
+NEW_TASK_DEF_ARN=$(echo "$CURRENT_TASK_DEF" | jq '{
+    family: .family,
+    taskRoleArn: .taskRoleArn,
+    executionRoleArn: .executionRoleArn,
+    networkMode: .networkMode,
+    containerDefinitions: .containerDefinitions,
+    volumes: .volumes,
+    requiresCompatibilities: .requiresCompatibilities,
+    cpu: .cpu,
+    memory: .memory
+} | with_entries(select(.value != null))' | aws ecs register-task-definition \
     --region $AWS_REGION \
     --cli-input-json file:///dev/stdin \
     --query 'taskDefinition.taskDefinitionArn' \
     --output text)
 
 if [ $? -ne 0 ] || [ -z "$NEW_TASK_DEF_ARN" ]; then
-    echo "❌ Failed to register new task definition"
-    echo "Check CloudWatch logs or AWS console for details"
+    echo "❌ Failed to register new task definition revision"
     exit 1
 fi
 
