@@ -15,4 +15,4 @@ datasources:
     jsonData:
       authType: ec2_iam_role
       defaultRegion: us-east-1
-      assumeRoleArn: ""
+      assumeRoleArn: "arn:aws:iam::501257812093:role/medisupply-ecs-task-role"
