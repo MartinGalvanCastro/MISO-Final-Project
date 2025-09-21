@@ -4,7 +4,7 @@ resource "aws_ecs_cluster" "main" {
 
   setting {
     name  = "containerInsights"
-    value = "disabled"  # Disable for cost savings
+    value = "enabled"  # Enable for monitoring dashboards
   }
 
   tags = {
@@ -153,10 +153,43 @@ resource "aws_iam_policy" "ecs_ecr_policy" {
   }
 }
 
+# PassRole policy for ECS task execution role to pass task roles
+resource "aws_iam_policy" "ecs_pass_role_policy" {
+  name        = "${var.project_name}-ecs-pass-role-policy"
+  description = "Policy for ECS task execution role to pass task roles"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "iam:PassRole"
+        ]
+        Resource = [
+          aws_iam_role.ecs_task_role.arn,
+          aws_iam_role.ecs_task_execution_role.arn
+        ]
+      }
+    ]
+  })
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+  }
+}
+
 # Attach ECR policy to execution role
 resource "aws_iam_role_policy_attachment" "ecs_ecr_policy" {
   role       = aws_iam_role.ecs_task_execution_role.name
   policy_arn = aws_iam_policy.ecs_ecr_policy.arn
+}
+
+# Attach PassRole policy to execution role
+resource "aws_iam_role_policy_attachment" "ecs_pass_role_policy" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = aws_iam_policy.ecs_pass_role_policy.arn
 }
 
 # ECS Task Role (for application permissions)
@@ -202,13 +235,21 @@ resource "aws_iam_policy" "ecs_cloudwatch_policy" {
           "cloudwatch:GetMetricStatistics",
           "cloudwatch:GetMetricData",
           "cloudwatch:ListMetrics",
+          "logs:DescribeLogGroups",
+          "logs:DescribeLogStreams",
+          "logs:GetLogEvents",
+          "logs:StartQuery",
+          "logs:StopQuery",
+          "logs:GetQueryResults",
           "ec2:DescribeRegions",
           "ecs:DescribeClusters",
           "ecs:DescribeServices",
           "ecs:DescribeTasks",
           "ecs:ListClusters",
           "ecs:ListServices",
-          "ecs:ListTasks"
+          "ecs:ListTasks",
+          "oam:ListSinks",
+          "oam:ListAttachedLinks"
         ]
         Resource = "*"
       }
