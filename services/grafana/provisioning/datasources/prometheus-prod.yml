@@ -13,5 +13,6 @@ datasources:
     uid: CloudWatch-UID
     editable: true
     jsonData:
-      authType: default
+      authType: ec2_iam_role
       defaultRegion: us-east-1
+      assumeRoleArn: "arn:aws:iam::501257812093:role/medisupply-ecs-task-role"
