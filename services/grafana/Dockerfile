@@ -21,3 +21,4 @@ EXPOSE 3000
 
 # Use the default Grafana entrypoint
 USER grafana
+# Updated with CloudWatch integration support
