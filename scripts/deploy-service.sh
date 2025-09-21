@@ -35,6 +35,18 @@ case $SERVICE_NAME in
         CONTAINER_NAME="inventory-service"
         CONTAINER_PORT=8002
         ;;
+    "grafana")
+        TASK_FAMILY="medisupply-grafana"
+        CONTAINER_NAME="grafana"
+        CONTAINER_PORT=3000
+        USE_ECS_UPDATE=true
+        ;;
+    "prometheus")
+        TASK_FAMILY="medisupply-prometheus"
+        CONTAINER_NAME="prometheus"
+        CONTAINER_PORT=9090
+        USE_ECS_UPDATE=true
+        ;;
     *)
         echo "❌ Unknown service: $SERVICE_NAME"
         exit 1
@@ -43,7 +55,9 @@ esac
 
 echo "📋 Service Configuration:"
 echo "   Task Family: $TASK_FAMILY"
-echo "   Deployment Group: $DEPLOYMENT_GROUP"
+if [ -z "$USE_ECS_UPDATE" ]; then
+    echo "   Deployment Group: $DEPLOYMENT_GROUP"
+fi
 echo "   Container: $CONTAINER_NAME:$CONTAINER_PORT"
 
 # Get current task definition to copy its configuration
@@ -92,6 +106,34 @@ if [ $? -ne 0 ] || [ -z "$NEW_TASK_DEF_ARN" ]; then
 fi
 
 echo "✅ New task definition registered: $NEW_TASK_DEF_ARN"
+
+# Handle deployment based on service type
+if [ "$USE_ECS_UPDATE" = true ]; then
+    echo "🔄 Updating ECS service directly (no CodeDeploy)..."
+
+    # Update the service with new task definition
+    aws ecs update-service \
+        --cluster $ECS_CLUSTER \
+        --service $TASK_FAMILY \
+        --task-definition $NEW_TASK_DEF_ARN \
+        --region $AWS_REGION \
+        --query 'service.serviceName' \
+        --output text
+
+    if [ $? -eq 0 ]; then
+        echo "✅ ECS service updated successfully!"
+        echo "🔄 ECS will rolling update to new task definition"
+        echo "🌐 Monitor in AWS Console: https://console.aws.amazon.com/ecs/home?region=$AWS_REGION#/clusters/$ECS_CLUSTER/services"
+    else
+        echo "❌ Failed to update ECS service"
+        exit 1
+    fi
+
+    # Cleanup and exit
+    rm -f /tmp/task_def_${SERVICE_NAME}.json
+    echo "🎉 ECS service update completed successfully!"
+    exit 0
+fi
 
 # Create AppSpec for CodeDeploy
 echo "📄 Creating AppSpec for CodeDeploy..."
