@@ -79,11 +79,18 @@
       "targets": [
         {
           "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "type": "cloudwatch",
+            "uid": "CloudWatch-UID"
           },
           "editorMode": "code",
-          "expr": "count(up{job=\"orders-service\"} == 1)",
+          "expr": "",
+          "metricName": "RunningTaskCount",
+          "namespace": "AWS/ECS",
+          "dimensions": {
+            "ServiceName": "medisupply-orders-service",
+            "ClusterName": "medisupply-cluster"
+          },
+          "statistic": "Average",
           "hide": false,
           "legendFormat": "Orders Service",
           "range": true,
@@ -150,11 +157,18 @@
       "targets": [
         {
           "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "type": "cloudwatch",
+            "uid": "CloudWatch-UID"
           },
           "editorMode": "code",
-          "expr": "count(up{job=\"inventory-service\"} == 1)",
+          "expr": "",
+          "metricName": "RunningTaskCount",
+          "namespace": "AWS/ECS",
+          "dimensions": {
+            "ServiceName": "medisupply-inventory-service",
+            "ClusterName": "medisupply-cluster"
+          },
+          "statistic": "Average",
           "hide": false,
           "legendFormat": "Inventory Service",
           "range": true,

@@ -103,7 +103,7 @@ for exception_class, handler in EXCEPTION_HANDLERS.items():
 
 # Initialize Prometheus metrics first with path exclusions
 instrumentator = Instrumentator(
-    excluded_handlers=[".*/health.*", ".*/metrics.*"]
+    excluded_handlers=[".*/health.*", ".*/metrics.*", ".*/docs.*", ".*/openapi.json"]
 )
 instrumentator.instrument(app).expose(app, endpoint="/api/v1/inventory/metrics")
 

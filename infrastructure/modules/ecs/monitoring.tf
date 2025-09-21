@@ -7,6 +7,7 @@ resource "aws_ecs_task_definition" "prometheus" {
   memory                   = "512"  # 512 MB
 
   execution_role_arn = aws_iam_role.ecs_task_execution_role.arn
+  task_role_arn      = aws_iam_role.ecs_task_role.arn
 
   container_definitions = jsonencode([
     {

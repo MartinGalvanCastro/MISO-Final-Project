@@ -126,6 +126,39 @@ resource "aws_iam_role_policy_attachment" "ecs_secrets_policy" {
   policy_arn = aws_iam_policy.ecs_secrets_policy.arn
 }
 
+# Additional policy for ECR access
+resource "aws_iam_policy" "ecs_ecr_policy" {
+  name        = "${var.project_name}-ecs-ecr-policy"
+  description = "Policy for ECS tasks to access ECR"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+  }
+}
+
+# Attach ECR policy to execution role
+resource "aws_iam_role_policy_attachment" "ecs_ecr_policy" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = aws_iam_policy.ecs_ecr_policy.arn
+}
+
 # ECS Task Role (for application permissions)
 resource "aws_iam_role" "ecs_task_role" {
   name = "${var.project_name}-ecs-task-role"

@@ -213,8 +213,17 @@ resource "aws_lb_listener_rule" "orders_service" {
   priority     = 100
 
   action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.orders_service.arn
+    type = "forward"
+    forward {
+      target_group {
+        arn    = aws_lb_target_group.orders_service.arn
+        weight = 100
+      }
+      target_group {
+        arn    = aws_lb_target_group.orders_service_green.arn
+        weight = 0
+      }
+    }
   }
 
   condition {
@@ -235,8 +244,17 @@ resource "aws_lb_listener_rule" "inventory_service" {
   priority     = 200
 
   action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.inventory_service.arn
+    type = "forward"
+    forward {
+      target_group {
+        arn    = aws_lb_target_group.inventory_service.arn
+        weight = 100
+      }
+      target_group {
+        arn    = aws_lb_target_group.inventory_service_green.arn
+        weight = 0
+      }
+    }
   }
 
   condition {
