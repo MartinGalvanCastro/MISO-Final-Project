@@ -47,7 +47,7 @@ resource "aws_ecs_task_definition" "orders_service" {
         },
         {
           name  = "INVENTORY_SERVICE_URL"
-          value = "http://inventory-service.${var.service_discovery_namespace_name}:8002"
+          value = "http://${var.alb_dns_name}/api/v1/inventory"
         },
         {
           name  = "AWS_REGION"
@@ -81,7 +81,7 @@ resource "aws_ecs_task_definition" "orders_service" {
       }
 
       healthCheck = {
-        command     = ["CMD-SHELL", "curl -f http://localhost:8001/health/ || exit 1"]
+        command     = ["CMD-SHELL", "curl -f http://localhost:8001/api/v1/orders/healthcheck/ || exit 1"]
         interval    = 30
         timeout     = 5
         retries     = 3
@@ -268,7 +268,7 @@ resource "aws_ecs_task_definition" "inventory_service" {
       }
 
       healthCheck = {
-        command     = ["CMD-SHELL", "curl -f http://localhost:8002/health/ || exit 1"]
+        command     = ["CMD-SHELL", "curl -f http://localhost:8002/api/v1/inventory/health/ || exit 1"]
         interval    = 30
         timeout     = 5
         retries     = 3

@@ -163,7 +163,7 @@ resource "aws_ecs_task_definition" "grafana" {
         },
         {
           name  = "PROMETHEUS_URL"
-          value = "http://prometheus.${var.service_discovery_namespace_name}:9090"
+          value = "http://${var.alb_dns_name}/prometheus"
         }
       ]
 

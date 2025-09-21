@@ -13,14 +13,14 @@ scrape_configs:
 
   - job_name: 'orders-service'
     static_configs:
-      - targets: ['orders-service.medisupply.local:8001']
-    metrics_path: '/metrics'
+      - targets: ['medisupply-alb-1440734058.us-east-1.elb.amazonaws.com']
+    metrics_path: '/api/v1/orders/metrics'
     scrape_interval: 5s
     scrape_timeout: 5s
 
   - job_name: 'inventory-service'
     static_configs:
-      - targets: ['inventory-service.medisupply.local:8002']
-    metrics_path: '/metrics'
+      - targets: ['medisupply-alb-1440734058.us-east-1.elb.amazonaws.com']
+    metrics_path: '/api/v1/inventory/metrics'
     scrape_interval: 5s
     scrape_timeout: 5s

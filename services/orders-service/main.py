@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Orders Service",
     version="3.0.0",
+    docs_url="/api/v1/orders/docs",
+    openapi_url="/api/v1/orders/openapi.json",
     description="""
 ## Orders Service API
 
@@ -98,20 +100,20 @@ app.add_middleware(
 for exception_class, handler in EXCEPTION_HANDLERS.items():
     app.add_exception_handler(exception_class, handler)
 
-# Include routers
-app.include_router(order_router)
-app.include_router(health_router)
-
-# Initialize Prometheus metrics
+# Initialize Prometheus metrics first with exclusions for health and metrics endpoints
 instrumentator = Instrumentator()
-instrumentator.instrument(app).expose(app)
+instrumentator.instrument(app, excluded_handlers=["/api/v1/orders/health/", "/api/v1/orders/health", "/api/v1/orders/metrics"]).expose(app, endpoint="/api/v1/orders/metrics")
+
+# Include routers - ORDER MATTERS! Health router must come before order router, and metrics must be registered before order router
+app.include_router(health_router)
+app.include_router(order_router)
 
 
 @app.on_event("startup")
 async def startup():
     logger.info(f"Starting {settings.APP_NAME} on port {settings.PORT}")
     logger.info(f"Environment: {settings.ENVIRONMENT}")
-    logger.info("Prometheus metrics enabled at /metrics")
+    logger.info("Prometheus metrics enabled at /api/v1/orders/metrics")
 
 
 @app.on_event("shutdown")

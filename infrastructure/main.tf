@@ -61,7 +61,8 @@ module "ecs" {
 
   # Service Discovery namespace will be created within the module
 
-  # ALB Target Groups
+  # ALB Configuration
+  alb_dns_name               = module.alb.alb_dns_name
   orders_target_group_arn     = module.alb.target_groups.orders_service
   inventory_target_group_arn  = module.alb.target_groups.inventory_service
   prometheus_target_group_arn = module.alb.target_groups.prometheus

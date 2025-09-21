@@ -28,7 +28,7 @@ resource "aws_lb_target_group" "orders_service" {
     healthy_threshold   = 2
     interval            = 30
     matcher             = "200"
-    path                = "/health/"
+    path                = "/api/v1/orders/health/"
     port                = "traffic-port"
     protocol            = "HTTP"
     timeout             = 5
@@ -56,7 +56,7 @@ resource "aws_lb_target_group" "orders_service_green" {
     healthy_threshold   = 2
     interval            = 30
     matcher             = "200"
-    path                = "/health/"
+    path                = "/api/v1/orders/health/"
     port                = "traffic-port"
     protocol            = "HTTP"
     timeout             = 5
@@ -85,7 +85,7 @@ resource "aws_lb_target_group" "inventory_service" {
     healthy_threshold   = 2
     interval            = 30
     matcher             = "200"
-    path                = "/health/"
+    path                = "/api/v1/inventory/health/"
     port                = "traffic-port"
     protocol            = "HTTP"
     timeout             = 5
@@ -113,7 +113,7 @@ resource "aws_lb_target_group" "inventory_service_green" {
     healthy_threshold   = 2
     interval            = 30
     matcher             = "200"
-    path                = "/health/"
+    path                = "/api/v1/inventory/health/"
     port                = "traffic-port"
     protocol            = "HTTP"
     timeout             = 5
@@ -215,7 +215,7 @@ resource "aws_lb_listener_rule" "orders_service" {
 
   condition {
     path_pattern {
-      values = ["/api/v1/orders*", "/health", "/docs", "/openapi.json"]
+      values = ["/api/v1/orders*"]
     }
   }
 

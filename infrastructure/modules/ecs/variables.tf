@@ -85,6 +85,11 @@ variable "inventory_service_desired_count" {
   default     = 5
 }
 
+variable "alb_dns_name" {
+  description = "DNS name of the Application Load Balancer for internal communication"
+  type        = string
+}
+
 variable "orders_target_group_arn" {
   description = "ARN of the orders service target group"
   type        = string

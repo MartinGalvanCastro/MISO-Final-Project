@@ -58,22 +58,31 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Since we use :latest tags in Terraform, we just need to create a new revision
-# with the same configuration to force ECS to pull the updated :latest image
-echo "🔄 Creating new task definition revision (same config, forces :latest pull)..."
-NEW_TASK_DEF_ARN=$(echo "$CURRENT_TASK_DEF" | jq '{
+# Update the container image and create new task definition revision
+echo "🔄 Creating new task definition with updated image..."
+
+# Create a clean task definition file with updated image
+echo "$CURRENT_TASK_DEF" | jq --arg image_uri "$IMAGE_URI" --arg container_name "$CONTAINER_NAME" '{
     family: .family,
     taskRoleArn: .taskRoleArn,
     executionRoleArn: .executionRoleArn,
     networkMode: .networkMode,
-    containerDefinitions: .containerDefinitions,
+    containerDefinitions: (.containerDefinitions | map(
+        if .name == $container_name then
+            .image = $image_uri
+        else
+            .
+        end
+    )),
     volumes: .volumes,
     requiresCompatibilities: .requiresCompatibilities,
     cpu: .cpu,
     memory: .memory
-} | with_entries(select(.value != null))' | aws ecs register-task-definition \
+}' > /tmp/task_def_${SERVICE_NAME}.json
+
+NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
     --region $AWS_REGION \
-    --cli-input-json file:///dev/stdin \
+    --cli-input-json file:///tmp/task_def_${SERVICE_NAME}.json \
     --query 'taskDefinition.taskDefinitionArn' \
     --output text)
 
@@ -139,5 +148,6 @@ echo "🔙 Automatic rollback enabled on health check failures"
 
 # Cleanup
 rm -f /tmp/appspec_${SERVICE_NAME}.json
+rm -f /tmp/task_def_${SERVICE_NAME}.json
 
 echo "🎉 Blue-Green deployment initiated successfully!"
