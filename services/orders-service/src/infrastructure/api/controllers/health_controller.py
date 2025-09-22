@@ -48,8 +48,8 @@ router = APIRouter(prefix="/api/v1/orders/health", tags=["health"])
 async def health_check():
     """Health check endpoint for orders service - RANDOMLY FAILS 70% OF THE TIME FOR CODEDEPLOY TESTING"""
     # Randomly fail 70% of the time to trigger CodeDeploy rollback
-    # if random.random() < 0.7:
-    #     raise HTTPException(status_code=503, detail="Random health check failure for testing")
+    if random.random() < 0.7:
+        raise HTTPException(status_code=503, detail="Random health check failure for testing")
 
     return HealthResponse(
         status="healthy",
