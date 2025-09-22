@@ -1,4 +1,5 @@
-from fastapi import APIRouter
+import random
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 
@@ -25,7 +26,7 @@ router = APIRouter(prefix="/api/v1/orders/health", tags=["health"])
     "/",
     response_model=HealthResponse,
     summary="Health check",
-    description="Basic health check endpoint to verify service is running",
+    description="Basic health check endpoint to verify service is running - RANDOMLY FAILS FOR TESTING",
     responses={
         200: {
             "description": "Service is healthy",
@@ -38,11 +39,18 @@ router = APIRouter(prefix="/api/v1/orders/health", tags=["health"])
                     }
                 }
             }
+        },
+        503: {
+            "description": "Service is unhealthy (random failure for testing)"
         }
     }
 )
 async def health_check():
-    """Health check endpoint for orders service"""
+    """Health check endpoint for orders service - RANDOMLY FAILS 70% OF THE TIME FOR CODEDEPLOY TESTING"""
+    # Randomly fail 70% of the time to trigger CodeDeploy rollback
+    # if random.random() < 0.7:
+    #     raise HTTPException(status_code=503, detail="Random health check failure for testing")
+
     return HealthResponse(
         status="healthy",
         service="orders-service",
